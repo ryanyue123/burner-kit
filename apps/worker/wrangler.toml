@@ -7,6 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "burner-kit-dev"
 database_id = "local-burner-kit-dev"
+migrations_dir = "drizzle"
 
 [vars]
 BETTER_AUTH_URL = "http://localhost:8787"
