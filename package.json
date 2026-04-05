@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo 'dev script added in Task 12'",
+    "dev": "concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint",
@@ -13,6 +13,7 @@
     "check": "pnpm typecheck && pnpm lint && pnpm format:check"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "oxfmt": "^0.43.0",
     "oxlint": "^1.58.0",
     "typescript": "^5.6.0"
