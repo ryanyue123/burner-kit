@@ -10,7 +10,7 @@
 
 burner-kit is a Chrome extension + backend that generates and stores burner credentials — disposable emails, passwords, and phone numbers — for use on sites the user doesn't want to give real information to. Think 1Password, but inverted: instead of vaulting your real identity, it manufactures throwaway ones.
 
-**Long-term north star:** burner emails and phone numbers that actually *receive* messages (signup confirmation links, SMS OTPs). This drove the backend stack choice — see §3.
+**Long-term north star:** burner emails and phone numbers that actually _receive_ messages (signup confirmation links, SMS OTPs). This drove the backend stack choice — see §3.
 
 **MVP product scope (future milestones, not this one):** generate-and-store only. Plausible fake values the user can paste into sketchy signup forms.
 
@@ -50,6 +50,7 @@ Chosen primarily for the **post-MVP roadmap**, not just MVP convenience. Cloudfl
 The 2026 default for new Workers projects. Web Standards API, extremely small, typed client (`hc`) gives tRPC-comparable type inference without the RPC style, mounts Better Auth as middleware natively. ([Hono](https://hono.dev/), [Better Auth on Cloudflare + Hono](https://hono.dev/examples/better-auth-on-cloudflare))
 
 Rejected alternatives:
+
 - **tRPC**: mature, great DX with React Query, but RPC-style URLs reduce future flexibility (web dashboard, curl) and the CF Workers ecosystem has standardized on Hono.
 - **oRPC**: promising, contract-first, OpenAPI-native, but OpenAPI layer is unnecessary overhead for a single-client app.
 
@@ -66,6 +67,7 @@ This is the key decision, and it superseded earlier iterations of this design th
 **The solution:** Better Auth's [Anonymous plugin](https://better-auth.com/docs/plugins/anonymous). On first launch, the extension calls `authClient.signIn.anonymous()`, Better Auth creates a real `user` row and real `session` row, and the extension stores the session token locally. No login UI, no user interaction, and it is actually real auth — cryptographic sessions, expiry, refresh, revocation.
 
 **Why this beats hand-rolling:**
+
 - Battle-tested session management (not a `sha256(random)` string comparison)
 - Native D1 support in Better Auth 1.5 — just pass the binding, no adapter
 - Official browser extension guide covering `chrome.storage.local` session persistence across MV3 service-worker restarts
@@ -192,12 +194,12 @@ This is the critical thing to verify in success criterion #4 below.
 
 For this milestone, we write **no application schema**. Better Auth owns the only tables that exist:
 
-| Table | Owner | Purpose |
-|---|---|---|
-| `user` | Better Auth | User identity (will have anonymous flag for MVP rows) |
-| `session` | Better Auth | Active sessions, including the extension's persistent one |
-| `account` | Better Auth | Auth method links (unused for anonymous; prepares for future providers) |
-| `verification` | Better Auth | Verification tokens (unused for anonymous; prepares for email/passkey) |
+| Table          | Owner       | Purpose                                                                 |
+| -------------- | ----------- | ----------------------------------------------------------------------- |
+| `user`         | Better Auth | User identity (will have anonymous flag for MVP rows)                   |
+| `session`      | Better Auth | Active sessions, including the extension's persistent one               |
+| `account`      | Better Auth | Auth method links (unused for anonymous; prepares for future providers) |
+| `verification` | Better Auth | Verification tokens (unused for anonymous; prepares for email/passkey)  |
 
 Better Auth generates its own Drizzle schema from config and runs migrations via `wrangler d1 migrations apply`. We do not author these tables by hand.
 
@@ -209,10 +211,10 @@ The `burners` table — and any other application tables — lands in a **subseq
 
 ## 7. API surface for this milestone
 
-| Method | Path | Source | Purpose |
-|---|---|---|---|
-| `*` | `/api/auth/*` | Better Auth | Handles sign-in, session, etc. |
-| `GET` | `/api/me` | Our code | Returns `{ userId, createdAt, isAnonymous }`. Protected by `requireUser`. |
+| Method | Path          | Source      | Purpose                                                                   |
+| ------ | ------------- | ----------- | ------------------------------------------------------------------------- |
+| `*`    | `/api/auth/*` | Better Auth | Handles sign-in, session, etc.                                            |
+| `GET`  | `/api/me`     | Our code    | Returns `{ userId, createdAt, isAnonymous }`. Protected by `requireUser`. |
 
 That's it. Two routes. Everything else is out of scope.
 

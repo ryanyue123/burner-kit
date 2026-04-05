@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "react-hooks", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "style": "off"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off"
+  },
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/.output/**",
+    "**/.wxt/**",
+    "**/.wrangler/**",
+    "**/dist/**",
+    "**/drizzle/**"
+  ]
+}

@@ -11,6 +11,7 @@
 **Reference spec:** `docs/superpowers/specs/2026-04-04-burner-kit-scaffolding-design.md`
 
 **Authoritative docs to verify against during implementation** (APIs may have shifted since plan was written):
+
 - WXT: https://wxt.dev/guide/essentials/config.html
 - Wrangler / D1: https://developers.cloudflare.com/d1/get-started/
 - Hono on Workers: https://hono.dev/docs/getting-started/cloudflare-workers
@@ -68,6 +69,7 @@ burner-kit/
 ```
 
 **File responsibilities:**
+
 - `apps/worker/src/auth.ts` — **sole** place Better Auth is configured. Exports `createAuth(env)` factory that returns a new Better Auth instance per request (because `env` is only available inside request handlers in CF Workers).
 - `apps/worker/src/middleware.ts` — Hono middleware that validates the session and attaches `user`/`session` to the Hono context. Also exports `requireUser` for endpoints that must be authenticated.
 - `apps/worker/src/index.ts` — Hono app wiring. Imports `createAuth` and `requireUser`. Defines `/api/auth/*` passthrough and `/api/me`.
@@ -87,6 +89,7 @@ This means most tasks below skip the TDD "write failing test first" step and ins
 ## Task 1: Initialize monorepo root
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `tsconfig.base.json`
@@ -181,7 +184,7 @@ dist/
 
 - [ ] **Step 5: Create minimal `README.md`**
 
-```markdown
+````markdown
 # burner-kit
 
 Browser extension + Cloudflare Workers backend for generating and storing burner credentials.
@@ -193,9 +196,11 @@ pnpm install
 pnpm --filter worker db:migrate:local
 pnpm dev
 ```
+````
 
 See `docs/superpowers/specs/` and `docs/superpowers/plans/` for design and implementation notes.
-```
+
+````
 
 - [ ] **Step 6: Install root deps**
 
@@ -207,13 +212,14 @@ Expected: installs TypeScript, creates `pnpm-lock.yaml`, no errors.
 ```bash
 git add package.json pnpm-workspace.yaml tsconfig.base.json .gitignore README.md pnpm-lock.yaml
 git commit -m "chore: initialize pnpm monorepo root"
-```
+````
 
 ---
 
 ## Task 2: Install and configure Oxlint + Oxfmt
 
 **Files:**
+
 - Create: `.oxlintrc.json`
 - Modify: `package.json` (add deps)
 
@@ -273,6 +279,7 @@ git commit -m "chore: add oxlint and oxfmt tooling"
 ## Task 3: Initialize Worker app with Hono hello-world
 
 **Files:**
+
 - Create: `apps/worker/package.json`
 - Create: `apps/worker/tsconfig.json`
 - Create: `apps/worker/wrangler.toml`
@@ -402,6 +409,7 @@ git commit -m "feat(worker): initialize hono app on cloudflare workers"
 ## Task 4: Create D1 database and wire Drizzle
 
 **Files:**
+
 - Modify: `apps/worker/package.json` (add deps + scripts)
 - Modify: `apps/worker/wrangler.toml` (enable D1 binding)
 - Create: `apps/worker/drizzle.config.ts`
@@ -508,6 +516,7 @@ git commit -m "feat(worker): provision d1 database and add drizzle"
 ## Task 5: Install Better Auth with Anonymous plugin and generate schema
 
 **Files:**
+
 - Modify: `apps/worker/package.json` (add deps)
 - Create: `apps/worker/src/auth.ts`
 - Modify: `apps/worker/src/db/schema.ts` (populated via Better Auth CLI)
@@ -545,9 +554,7 @@ export function createAuth(env: AuthEnv) {
     }),
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: env.EXTENSION_ORIGIN
-      ? [env.EXTENSION_ORIGIN]
-      : ["chrome-extension://*"], // dev fallback; tightened in Task 10
+    trustedOrigins: env.EXTENSION_ORIGIN ? [env.EXTENSION_ORIGIN] : ["chrome-extension://*"], // dev fallback; tightened in Task 10
     plugins: [anonymous()],
   });
 }
@@ -612,6 +619,7 @@ No commit (this task produces no tracked file changes; the migration file was co
 ## Task 7: Mount Better Auth in Hono and add /api/me endpoint
 
 **Files:**
+
 - Create: `apps/worker/src/middleware.ts`
 - Modify: `apps/worker/src/index.ts`
 
@@ -677,12 +685,7 @@ export async function requireUser(
 ```typescript
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import {
-  attachAuth,
-  requireUser,
-  type AppBindings,
-  type AppVariables,
-} from "./middleware";
+import { attachAuth, requireUser, type AppBindings, type AppVariables } from "./middleware";
 
 const app = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
@@ -761,6 +764,7 @@ Expected: HTTP `401` with body `{"error":"unauthorized"}`.
 - [ ] **Step 4: Sign in anonymously and capture the session cookie**
 
 Run:
+
 ```bash
 curl -si -c /tmp/burner-cookies.txt -X POST \
   -H "Content-Type: application/json" \
@@ -774,6 +778,7 @@ If the endpoint path differs (Better Auth has used both `/sign-in/anonymous` and
 - [ ] **Step 5: Confirm /api/me now returns the user**
 
 Run:
+
 ```bash
 curl -s -b /tmp/burner-cookies.txt http://localhost:8787/api/me | jq
 ```
@@ -783,6 +788,7 @@ Expected: `{"userId": "<some id>", "createdAt": "...", "isAnonymous": true}`
 - [ ] **Step 6: Confirm D1 has one user and one session row**
 
 Run:
+
 ```bash
 pnpm --filter worker wrangler d1 execute burner-kit-dev --local \
   --command "SELECT id, email FROM user"
@@ -803,6 +809,7 @@ No commit (verification only).
 ## Task 9: Initialize WXT extension app
 
 **Files:**
+
 - Create: `apps/extension/package.json`
 - Create: `apps/extension/tsconfig.json`
 - Create: `apps/extension/wxt.config.ts`
@@ -902,6 +909,7 @@ export default defineBackground(() => {
 - [ ] **Step 6: Create popup scaffolding**
 
 `apps/extension/entrypoints/popup/index.html`:
+
 ```html
 <!doctype html>
 <html lang="en">
@@ -918,6 +926,7 @@ export default defineBackground(() => {
 ```
 
 `apps/extension/entrypoints/popup/main.tsx`:
+
 ```typescript
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -934,6 +943,7 @@ ReactDOM.createRoot(root).render(
 ```
 
 `apps/extension/entrypoints/popup/App.tsx` (placeholder):
+
 ```typescript
 export default function App() {
   return (
@@ -974,6 +984,7 @@ git commit -m "feat(extension): initialize wxt + react popup scaffolding"
 ## Task 10: Wire background SW with Better Auth client and auto anonymous sign-in
 
 **Files:**
+
 - Modify: `apps/extension/package.json` (add `better-auth`)
 - Modify: `apps/extension/entrypoints/background.ts`
 - Modify: `apps/worker/wrangler.toml` (set `EXTENSION_ORIGIN`)
@@ -1092,6 +1103,7 @@ git commit -m "feat(extension): auto anonymous sign-in from background service w
 ## Task 11: Build the popup "Who am I?" UI with message passing
 
 **Files:**
+
 - Modify: `apps/extension/entrypoints/popup/App.tsx`
 
 - [ ] **Step 1: Replace `apps/extension/entrypoints/popup/App.tsx`**
@@ -1186,6 +1198,7 @@ git commit -m "feat(extension): add who-am-i button that calls /api/me via backg
 ## Task 12: Add root concurrent dev script
 
 **Files:**
+
 - Modify: `package.json` (root)
 
 - [ ] **Step 1: Install `concurrently` at root**
@@ -1223,10 +1236,12 @@ This task walks through the seven success criteria from the spec (§9). Each mus
 - [ ] **Step 1 — Criterion 1: Fresh install works**
 
 On a clean checkout (or in a new terminal):
+
 ```bash
 pnpm install
 pnpm --filter worker db:migrate:local
 ```
+
 Expected: no errors.
 
 - [ ] **Step 2 — Criterion 2: Both dev servers boot**
@@ -1241,10 +1256,12 @@ WXT's dev runner should open Chrome with the extension loaded. If it doesn't, ma
 - [ ] **Step 4 — Criterion 4: Anonymous sign-in happens on first launch**
 
 Check D1:
+
 ```bash
 pnpm --filter worker wrangler d1 execute burner-kit-dev --local --command "SELECT id FROM user"
 pnpm --filter worker wrangler d1 execute burner-kit-dev --local --command "SELECT id, userId FROM session"
 ```
+
 Expected: one row in each table. (If there are leftover rows from Task 8, that's fine — we care that at least one user/session corresponds to the extension.)
 
 Also check the browser: right-click the extension → "Inspect service worker" → Console should show `anonymous sign-in succeeded` (on first ever launch) or no error (on subsequent launches where a session already exists).
@@ -1266,9 +1283,11 @@ If this criterion fails: this is the risk flagged in spec §11. Debug by checkin
 - [ ] **Step 7 — Criterion 7: Typecheck + lint + format all pass**
 
 Stop the dev server. Then:
+
 ```bash
 pnpm check
 ```
+
 Expected: exits 0. All three of `typecheck`, `lint`, and `format:check` pass.
 
 - [ ] **Step 8: Record results and commit a completion marker**
@@ -1293,6 +1312,7 @@ git commit -m "docs: mark scaffolding milestone complete"
 ## Self-review notes
 
 **Spec coverage check:**
+
 - Spec §2 goals → Tasks 1–13 collectively; specifically Task 13 verifies all six goals.
 - Spec §3.1 WXT → Task 9.
 - Spec §3.2 CF Workers → Task 3.
@@ -1311,6 +1331,7 @@ git commit -m "docs: mark scaffolding milestone complete"
 - Spec §11 risks → Task 13 Step 6 explicitly tests the MV3 SW session-persistence risk with debug guidance if it fails.
 
 **Type/name consistency check:**
+
 - `createAuth(env)` defined in Task 5 and imported in Task 7 — consistent signature.
 - `AppBindings` / `AppVariables` types defined in Task 7 middleware and used in Task 7 index.ts — consistent.
 - `authClient`, `ensureAnonymousSession`, `fetchMe` names used consistently in Task 10.
