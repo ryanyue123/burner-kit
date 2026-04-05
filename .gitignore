@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+.output/
+.wxt/
+.wrangler/
+
+# env / secrets
+.env
+.env.local
+.dev.vars
+*.local
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+
+# logs
+*.log
