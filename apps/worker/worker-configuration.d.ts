@@ -3,4 +3,5 @@
 interface Env {
   BETTER_AUTH_URL: "http://localhost:8787";
   BETTER_AUTH_SECRET: string;
+  DB: D1Database;
 }

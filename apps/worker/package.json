@@ -7,13 +7,17 @@
     "dev": "wrangler dev",
     "build": "wrangler deploy --dry-run --outdir=dist",
     "typecheck": "tsc --noEmit",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply burner-kit-dev --local"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240925.0",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.6.0",
     "wrangler": "^3.78.0"
   }
