@@ -1,0 +1,14 @@
+name = "burner-kit-worker"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 binding added in Task 4
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "burner-kit-dev"
+# database_id = "FILL_IN_AFTER_CREATION"
+
+[vars]
+BETTER_AUTH_URL = "http://localhost:8787"
+# EXTENSION_ORIGIN filled in Task 10 after WXT assigns a dev extension ID
