@@ -9,6 +9,9 @@ database_name = "burner-kit-dev"
 database_id = "local-burner-kit-dev"
 migrations_dir = "drizzle"
 
+[dev]
+port = 8787
+
 [vars]
 BETTER_AUTH_URL = "http://localhost:8787"
 EXTENSION_ORIGIN = "chrome-extension://gjkdmhmhmoahlkpcmkedpdjpahjkciip"

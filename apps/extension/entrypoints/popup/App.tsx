@@ -32,6 +32,7 @@ export default function App() {
       <h1 style={{ fontSize: 16, margin: "0 0 12px 0" }}>burner-kit</h1>
 
       <button
+        type="button"
         onClick={handleClick}
         disabled={status === "loading"}
         style={{
