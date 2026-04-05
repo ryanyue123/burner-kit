@@ -11,4 +11,4 @@ migrations_dir = "drizzle"
 
 [vars]
 BETTER_AUTH_URL = "http://localhost:8787"
-# EXTENSION_ORIGIN filled in Task 10 after WXT assigns a dev extension ID
+EXTENSION_ORIGIN = "chrome-extension://gjkdmhmhmoahlkpcmkedpdjpahjkciip"
