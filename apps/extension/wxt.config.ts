@@ -19,9 +19,9 @@ export default defineConfig({
   },
   manifest: {
     name: "burner-kit",
-    description: "Disposable credential vault (scaffolding milestone)",
-    permissions: ["storage"],
-    host_permissions: ["http://localhost:8787/*"],
+    description: "Disposable credential vault",
+    permissions: ["storage", "activeTab"],
+    host_permissions: ["http://localhost:8787/*", "<all_urls>"],
     // Stable dev extension ID so Better Auth trustedOrigins stays consistent
     // across dev-server restarts. Generate a fresh key with:
     //   ssh-keygen -t rsa -b 2048 -m PEM -f /tmp/wxt-key -N "" && \
