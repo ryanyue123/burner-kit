@@ -43,10 +43,10 @@ Add the first product functionality to Burner Kit: generating temporary email ad
 
 | Layer | Technology |
 |-------|-----------|
-| Extension UI | React 18 + shadcn/ui + Tailwind v4 |
+| Extension UI | React 18 + shadcn/ui (Base UI style, `@base-ui/react`) + Tailwind v4 |
 | Extension framework | WXT (MV3) |
-| Color scheme | Neutral dark + blue primary (#3b82f6), shadcn dark theme |
-| API client | Hono RPC (`hc`) + React Query (TanStack Query) |
+| Color scheme | Neutral dark + blue primary (#3b82f6), shadcn dark theme (base-nova) |
+| API client | `@effect/rpc-http` + TanStack Query via `effect-query` |
 | Worker framework | Hono |
 | Worker business logic | Effect (services, layers, typed error channel) |
 | Schema/validation | Effect Schema + `@hono/effect-validator` |
@@ -68,9 +68,15 @@ Effect is adopted fully on the Worker side:
 
 Effect does NOT run on the extension side. The extension consumes plain JSON via Hono RPC and React Query.
 
-### Hono RPC for End-to-End Types
+### Effect RPC + TanStack Query for End-to-End Types
 
-The Worker exports `AppType` from its chained Hono routes. The extension imports this type and uses `hc<AppType>` for a fully typed API client. React Query wraps the `hc` calls with manual `queryFn`/`mutationFn` functions.
+The Worker defines request schemas as tagged classes via `Schema.TaggedRequest`, specifying payload, success type, and failure type. An `RpcRouter` handles these on the server side, mounted in Hono via `@effect/rpc-http`.
+
+On the extension side, `@effect/rpc-http` provides a typed client (HttpResolver). `effect-query` bridges this with TanStack Query, providing `queryOptions()` and `mutationOptions()` that run Effects through React Query. This gives end-to-end type safety including the error channel — something Hono RPC alone cannot provide.
+
+### shadcn/ui with Base UI
+
+The extension uses shadcn/ui's Base UI style variant (`base-nova`), which is built on `@base-ui/react` instead of Radix primitives. Components are installed via `npx shadcn@latest add <component>` with the base style selected. This provides the same shadcn component API and Tailwind v4 styling but with Base UI's lighter, more composable primitives underneath.
 
 ## Data Model
 
