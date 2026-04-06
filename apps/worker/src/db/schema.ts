@@ -86,9 +86,51 @@ export const verification = sqliteTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const emailAccount = sqliteTable(
+  "email_account",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    email: text("email").notNull().unique(),
+    providerAccountId: text("provider_account_id").notNull(),
+    providerToken: text("provider_token").notNull(),
+    domain: text("domain").notNull(),
+    label: text("label"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("email_account_userId_idx").on(table.userId),
+  ],
+);
+
+export const emailMessage = sqliteTable(
+  "email_message",
+  {
+    id: text("id").primaryKey(),
+    emailAccountId: text("email_account_id")
+      .notNull()
+      .references(() => emailAccount.id, { onDelete: "cascade" }),
+    fromAddress: text("from_address").notNull(),
+    subject: text("subject"),
+    textContent: text("text_content"),
+    htmlContent: text("html_content"),
+    receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
+    isRead: integer("is_read", { mode: "boolean" }).default(false).notNull(),
+  },
+  (table) => [
+    index("email_message_accountId_idx").on(table.emailAccountId),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  emailAccounts: many(emailAccount),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -102,5 +144,20 @@ export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
     references: [user.id],
+  }),
+}));
+
+export const emailAccountRelations = relations(emailAccount, ({ one, many }) => ({
+  user: one(user, {
+    fields: [emailAccount.userId],
+    references: [user.id],
+  }),
+  messages: many(emailMessage),
+}));
+
+export const emailMessageRelations = relations(emailMessage, ({ one }) => ({
+  emailAccount: one(emailAccount, {
+    fields: [emailMessage.emailAccountId],
+    references: [emailAccount.id],
   }),
 }));
