@@ -51,14 +51,12 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
             console.log(`[sync] fetching messages for ${account.email} (account=${accountId})`);
 
             // Fetch from mail.tm
-            const mailTmMessages = yield* mailTm
-              .getMessages(account.providerToken)
-              .pipe(
-                Effect.catchAll((e) => {
-                  console.error(`[sync] mail.tm list failed for ${account.email}:`, e);
-                  return Effect.succeed({ "hydra:member": [] as never[] });
-                }),
-              );
+            const mailTmMessages = yield* mailTm.getMessages(account.providerToken).pipe(
+              Effect.catchAll((e) => {
+                console.error(`[sync] mail.tm list failed for ${account.email}:`, e);
+                return Effect.succeed({ "hydra:member": [] as never[] });
+              }),
+            );
 
             const remote = mailTmMessages["hydra:member"];
             console.log(`[sync] mail.tm returned ${remote.length} message(s) for ${account.email}`);
@@ -82,14 +80,12 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
                 console.log(
                   `[sync] fetching full content for message ${msg.id} (subject=${msg.subject ?? "(none)"}${existing ? ", backfill" : ""})`,
                 );
-                const fullMsg = yield* mailTm
-                  .getMessage(account.providerToken, msg.id)
-                  .pipe(
-                    Effect.catchAll((e) => {
-                      console.error(`[sync] failed to fetch message ${msg.id}, using summary:`, e);
-                      return Effect.succeed(msg);
-                    }),
-                  );
+                const fullMsg = yield* mailTm.getMessage(account.providerToken, msg.id).pipe(
+                  Effect.catchAll((e) => {
+                    console.error(`[sync] failed to fetch message ${msg.id}, using summary:`, e);
+                    return Effect.succeed(msg);
+                  }),
+                );
 
                 if (!existing) {
                   yield* Effect.tryPromise({
@@ -126,7 +122,9 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
               }
             }
 
-            console.log(`[sync] inserted ${inserted} new message(s), ${remote.length - inserted} already cached`);
+            console.log(
+              `[sync] inserted ${inserted} new message(s), ${remote.length - inserted} already cached`,
+            );
 
             // Return all from D1
             const messages = yield* Effect.tryPromise({

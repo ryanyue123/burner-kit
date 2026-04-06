@@ -48,11 +48,7 @@ export function AccountList({ accounts }: { accounts: EmailAccount[] }) {
                   onClick={(e) => handleCopy(e, account)}
                   title="Copy email"
                 >
-                  {isCopied ? (
-                    <Check className="text-green-500" />
-                  ) : (
-                    <Copy />
-                  )}
+                  {isCopied ? <Check className="text-green-500" /> : <Copy />}
                 </Button>
                 <Button
                   variant="ghost"
