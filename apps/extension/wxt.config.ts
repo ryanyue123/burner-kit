@@ -2,6 +2,11 @@ import { defineConfig } from "wxt";
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  runner: {
+    binaries: {
+      chrome: "/Applications/Helium.app/Contents/MacOS/Helium",
+    },
+  },
   manifest: {
     name: "burner-kit",
     description: "Disposable credential vault (scaffolding milestone)",
