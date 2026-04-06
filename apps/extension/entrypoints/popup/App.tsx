@@ -1,67 +1,33 @@
-import { useState } from "react";
-
-type MeResponse =
-  | { ok: true; user: { userId: string; createdAt: string; isAnonymous: boolean } }
-  | { ok: false; error: string };
+import { Header } from "./components/header";
+import { AccountList } from "./components/account-list";
+import { EmptyState } from "./components/empty-state";
+import { useEmailAccounts, useGenerateEmail } from "./hooks/use-api";
 
 export default function App() {
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [result, setResult] = useState<MeResponse | null>(null);
+  const { data, isLoading } = useEmailAccounts();
+  const generateEmail = useGenerateEmail();
 
-  async function handleClick() {
-    setStatus("loading");
-    try {
-      const response = (await chrome.runtime.sendMessage({ type: "GET_ME" })) as MeResponse;
-      setResult(response);
-      setStatus(response.ok ? "done" : "error");
-    } catch (err) {
-      setResult({ ok: false, error: (err as Error).message });
-      setStatus("error");
-    }
-  }
+  const accounts = data?.ok ? data.data : [];
 
   return (
-    <main
-      style={{
-        padding: 16,
-        minWidth: 320,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: 13,
-      }}
-    >
-      <h1 style={{ fontSize: 16, margin: "0 0 12px 0" }}>burner-kit</h1>
-
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={status === "loading"}
-        style={{
-          padding: "6px 12px",
-          fontSize: 13,
-          cursor: status === "loading" ? "wait" : "pointer",
-        }}
-      >
-        {status === "loading" ? "Loading…" : "Who am I?"}
-      </button>
-
-      {status === "done" && result?.ok && (
-        <pre
-          style={{
-            marginTop: 12,
-            padding: 8,
-            background: "#f4f4f4",
-            borderRadius: 4,
-            fontSize: 11,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-          }}
-        >
-          {JSON.stringify(result.user, null, 2)}
-        </pre>
+    <main className="min-w-[320px] max-h-[500px] overflow-y-auto bg-background text-foreground">
+      <Header onGenerate={() => generateEmail.mutate()} isGenerating={generateEmail.isPending} />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          Loading...
+        </div>
+      ) : accounts.length === 0 ? (
+        <EmptyState
+          onGenerate={() => generateEmail.mutate()}
+          isGenerating={generateEmail.isPending}
+        />
+      ) : (
+        <AccountList accounts={accounts} />
       )}
-
-      {status === "error" && result && !result.ok && (
-        <p style={{ marginTop: 12, color: "#c00" }}>Error: {result.error}</p>
+      {generateEmail.isError && (
+        <div className="px-4 py-2 text-xs text-destructive">
+          Failed to generate email. Try again.
+        </div>
       )}
     </main>
   );

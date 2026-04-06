@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/client";
 import { anonymousClient } from "better-auth/client/plugins";
+import { apiRequest, type EmailAccount, type EmailMessage } from "@/lib/api-client";
 
 const API_URL = import.meta.env.WXT_API_URL as string;
 
@@ -10,10 +11,6 @@ const authClient = createAuthClient({
     credentials: "include",
   },
 });
-
-type GetMeResponse =
-  | { ok: true; user: { userId: string; createdAt: string; isAnonymous: boolean } }
-  | { ok: false; error: string };
 
 async function ensureAnonymousSession(): Promise<void> {
   try {
@@ -30,39 +27,91 @@ async function ensureAnonymousSession(): Promise<void> {
   console.log("anonymous sign-in succeeded");
 }
 
-async function fetchMe(): Promise<GetMeResponse> {
-  try {
-    const res = await fetch(`${API_URL}/api/me`, { credentials: "include" });
-    if (!res.ok) {
-      return { ok: false, error: `HTTP ${res.status}` };
-    }
-    const user = (await res.json()) as {
-      userId: string;
-      createdAt: string;
-      isAnonymous: boolean;
-    };
-    return { ok: true, user };
-  } catch (err) {
-    return { ok: false, error: (err as Error).message };
-  }
-}
+type MessageMap = {
+  GENERATE_EMAIL: { type: "GENERATE_EMAIL" };
+  GET_EMAIL_ACCOUNTS: { type: "GET_EMAIL_ACCOUNTS" };
+  GET_MESSAGES: { type: "GET_MESSAGES"; accountId: string };
+  GET_MESSAGE: { type: "GET_MESSAGE"; accountId: string; messageId: string };
+  MARK_READ: { type: "MARK_READ"; accountId: string; messageId: string; isRead: boolean };
+  DELETE_ACCOUNT: { type: "DELETE_ACCOUNT"; accountId: string };
+  UPDATE_ACCOUNT: {
+    type: "UPDATE_ACCOUNT";
+    accountId: string;
+    label?: string | null;
+    expiresAt?: number | null;
+  };
+  GET_ME: { type: "GET_ME" };
+};
+
+type Message = MessageMap[keyof MessageMap];
 
 export default defineBackground(() => {
   console.log("burner-kit background started");
 
-  // Auto sign-in on SW start (install + subsequent wakeups are both handled;
-  // if a session already exists, ensureAnonymousSession is a no-op).
   ensureAnonymousSession().catch((err) => console.error(err));
 
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message?.type === "GET_ME") {
-      (async () => {
-        await ensureAnonymousSession();
-        const result = await fetchMe();
-        sendResponse(result);
-      })();
-      return true; // keep the message channel open for async sendResponse
-    }
-    return false;
+  chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
+    (async () => {
+      await ensureAnonymousSession();
+
+      switch (message.type) {
+        case "GET_ME": {
+          const res = await apiRequest<{ userId: string; createdAt: string; isAnonymous: boolean }>(
+            "/api/me",
+          );
+          sendResponse(res);
+          break;
+        }
+        case "GENERATE_EMAIL": {
+          const res = await apiRequest<EmailAccount>("/api/email-accounts", { method: "POST" });
+          sendResponse(res);
+          break;
+        }
+        case "GET_EMAIL_ACCOUNTS": {
+          const res = await apiRequest<EmailAccount[]>("/api/email-accounts");
+          sendResponse(res);
+          break;
+        }
+        case "GET_MESSAGES": {
+          const res = await apiRequest<EmailMessage[]>(
+            `/api/email-accounts/${message.accountId}/messages`,
+          );
+          sendResponse(res);
+          break;
+        }
+        case "GET_MESSAGE": {
+          const res = await apiRequest<EmailMessage>(
+            `/api/email-accounts/${message.accountId}/messages/${message.messageId}`,
+          );
+          sendResponse(res);
+          break;
+        }
+        case "MARK_READ": {
+          const res = await apiRequest<EmailMessage>(
+            `/api/email-accounts/${message.accountId}/messages/${message.messageId}`,
+            { method: "PATCH", body: JSON.stringify({ isRead: message.isRead }) },
+          );
+          sendResponse(res);
+          break;
+        }
+        case "DELETE_ACCOUNT": {
+          const res = await apiRequest<void>(`/api/email-accounts/${message.accountId}`, {
+            method: "DELETE",
+          });
+          sendResponse(res);
+          break;
+        }
+        case "UPDATE_ACCOUNT": {
+          const { accountId, ...body } = message;
+          const res = await apiRequest<EmailAccount>(`/api/email-accounts/${accountId}`, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+          });
+          sendResponse(res);
+          break;
+        }
+      }
+    })();
+    return true; // keep channel open for async sendResponse
   });
 });
