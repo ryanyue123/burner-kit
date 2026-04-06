@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, pipe } from "effect";
 import { HttpClient, HttpClientRequest } from "@effect/platform";
 import { MailTmError } from "../errors";
-import { MailTmAccount, MailTmDomain, MailTmMessageList } from "../schemas";
+import { MailTmAccount, MailTmDomain, MailTmMessage, MailTmMessageList } from "../schemas";
 
 const MAIL_TM_API = "https://api.mail.tm";
 
@@ -17,6 +17,10 @@ export class MailTm extends Context.Tag("MailTm")<
     readonly getMessages: (
       token: string,
     ) => Effect.Effect<typeof MailTmMessageList.Type, MailTmError>;
+    readonly getMessage: (
+      token: string,
+      messageId: string,
+    ) => Effect.Effect<typeof MailTmMessage.Type, MailTmError>;
   }
 >() {}
 
@@ -78,6 +82,11 @@ export const MailTmLive = Layer.effect(
 
       getMessages: (token: string) =>
         doGet("/messages", token).pipe(Effect.map((res) => res as typeof MailTmMessageList.Type)),
+
+      getMessage: (token: string, messageId: string) =>
+        doGet(`/messages/${messageId}`, token).pipe(
+          Effect.map((res) => res as typeof MailTmMessage.Type),
+        ),
     };
   }),
 );

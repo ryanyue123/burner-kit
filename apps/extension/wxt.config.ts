@@ -16,6 +16,7 @@ export default defineConfig({
     binaries: {
       chrome: "/Applications/Helium.app/Contents/MacOS/Helium",
     },
+    startUrls: ["chrome-extension://gjkdmhmhmoahlkpcmkedpdjpahjkciip/popup.html"],
   },
   manifest: {
     name: "burner-kit",

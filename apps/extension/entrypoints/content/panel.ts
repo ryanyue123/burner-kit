@@ -1,7 +1,6 @@
 import type { EmailAccount, ApiResult } from "@/lib/api-client";
 
 let panelHost: HTMLDivElement | null = null;
-let __currentInput: HTMLInputElement | null = null;
 
 function fillInput(input: HTMLInputElement, value: string) {
   const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
@@ -127,7 +126,6 @@ function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, accounts: Emai
 
 export async function showPanel(input: HTMLInputElement, iconHost: HTMLDivElement) {
   hidePanel();
-  _currentInput = input;
 
   panelHost = document.createElement("div");
   panelHost.style.position = "absolute";
@@ -173,5 +171,4 @@ export function hidePanel() {
     panelHost.remove();
     panelHost = null;
   }
-  _currentInput = null;
 }

@@ -48,13 +48,24 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
           Effect.gen(function* () {
             const account = yield* emailAccountSvc.get(userId, accountId);
 
+            console.log(`[sync] fetching messages for ${account.email} (account=${accountId})`);
+
             // Fetch from mail.tm
             const mailTmMessages = yield* mailTm
               .getMessages(account.providerToken)
-              .pipe(Effect.catchAll(() => Effect.succeed({ "hydra:member": [] as never[] })));
+              .pipe(
+                Effect.catchAll((e) => {
+                  console.error(`[sync] mail.tm list failed for ${account.email}:`, e);
+                  return Effect.succeed({ "hydra:member": [] as never[] });
+                }),
+              );
+
+            const remote = mailTmMessages["hydra:member"];
+            console.log(`[sync] mail.tm returned ${remote.length} message(s) for ${account.email}`);
 
             // Upsert new messages into D1
-            for (const msg of mailTmMessages["hydra:member"]) {
+            let inserted = 0;
+            for (const msg of remote) {
               const existing = yield* Effect.tryPromise({
                 try: () =>
                   db.query.emailMessage.findFirst({
@@ -63,23 +74,59 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
                 catch: (e) => e as Error,
               }).pipe(Effect.orDie);
 
-              if (!existing) {
-                yield* Effect.tryPromise({
-                  try: () =>
-                    db.insert(schema.emailMessage).values({
-                      id: msg.id,
-                      emailAccountId: accountId,
-                      fromAddress: msg.from.address,
-                      subject: msg.subject ?? null,
-                      textContent: msg.text ?? null,
-                      htmlContent: msg.html ? msg.html.join("") : null,
-                      receivedAt: new Date(msg.createdAt),
-                      isRead: msg.seen,
+              // Fetch full message content (list endpoint omits text/html body)
+              const needsContent =
+                !existing || (existing.textContent === null && existing.htmlContent === null);
+
+              if (needsContent) {
+                console.log(
+                  `[sync] fetching full content for message ${msg.id} (subject=${msg.subject ?? "(none)"}${existing ? ", backfill" : ""})`,
+                );
+                const fullMsg = yield* mailTm
+                  .getMessage(account.providerToken, msg.id)
+                  .pipe(
+                    Effect.catchAll((e) => {
+                      console.error(`[sync] failed to fetch message ${msg.id}, using summary:`, e);
+                      return Effect.succeed(msg);
                     }),
-                  catch: (e) => e as Error,
-                }).pipe(Effect.orDie);
+                  );
+
+                if (!existing) {
+                  yield* Effect.tryPromise({
+                    try: () =>
+                      db.insert(schema.emailMessage).values({
+                        id: msg.id,
+                        emailAccountId: accountId,
+                        fromAddress: fullMsg.from.address,
+                        subject: fullMsg.subject ?? null,
+                        textContent: fullMsg.text ?? null,
+                        htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                        receivedAt: new Date(fullMsg.createdAt),
+                        isRead: fullMsg.seen,
+                      }),
+                    catch: (e) => e as Error,
+                  }).pipe(Effect.orDie);
+                  inserted++;
+                } else {
+                  // Backfill content for previously synced messages
+                  yield* Effect.tryPromise({
+                    try: () =>
+                      db
+                        .update(schema.emailMessage)
+                        .set({
+                          subject: fullMsg.subject ?? null,
+                          textContent: fullMsg.text ?? null,
+                          htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                        })
+                        .where(eq(schema.emailMessage.id, msg.id)),
+                    catch: (e) => e as Error,
+                  }).pipe(Effect.orDie);
+                  console.log(`[sync] backfilled content for message ${msg.id}`);
+                }
               }
             }
+
+            console.log(`[sync] inserted ${inserted} new message(s), ${remote.length - inserted} already cached`);
 
             // Return all from D1
             const messages = yield* Effect.tryPromise({
@@ -91,6 +138,7 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
               catch: (e) => e as Error,
             }).pipe(Effect.orDie);
 
+            console.log(`[sync] returning ${messages.length} total message(s) from D1`);
             return messages;
           }),
 

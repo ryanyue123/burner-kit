@@ -19,6 +19,7 @@
     "**/.wxt/**",
     "**/.wrangler/**",
     "**/dist/**",
-    "**/drizzle/**"
+    "**/drizzle/**",
+    "**/components/ui/**"
   ]
 }
