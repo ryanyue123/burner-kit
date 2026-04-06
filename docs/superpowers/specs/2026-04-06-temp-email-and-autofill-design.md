@@ -41,19 +41,19 @@ Add the first product functionality to Burner Kit: generating temporary email ad
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Extension UI | React + shadcn/ui (Base UI style, `@base-ui/react`) + Tailwind CSS |
-| Extension framework | WXT (MV3) |
-| Color scheme | Neutral dark + blue primary (#3b82f6), shadcn dark theme (base-nova) |
-| API client | `@effect/rpc-http` + TanStack Query via `effect-query` |
-| Worker framework | Hono |
-| Worker business logic | Effect (services, layers, typed error channel) |
-| Schema/validation | Effect Schema + `@hono/effect-validator` |
-| HTTP client (server) | Effect HttpClient (`@effect/platform`) |
-| Database | Cloudflare D1 + Drizzle ORM |
-| Auth | Better Auth (anonymous plugin, existing) |
-| Temp email provider | mail.tm (free REST API, proxied through Worker) |
+| Layer                 | Technology                                                           |
+| --------------------- | -------------------------------------------------------------------- |
+| Extension UI          | React + shadcn/ui (Base UI style, `@base-ui/react`) + Tailwind CSS   |
+| Extension framework   | WXT (MV3)                                                            |
+| Color scheme          | Neutral dark + blue primary (#3b82f6), shadcn dark theme (base-nova) |
+| API client            | `@effect/rpc-http` + TanStack Query via `effect-query`               |
+| Worker framework      | Hono                                                                 |
+| Worker business logic | Effect (services, layers, typed error channel)                       |
+| Schema/validation     | Effect Schema + `@hono/effect-validator`                             |
+| HTTP client (server)  | Effect HttpClient (`@effect/platform`)                               |
+| Database              | Cloudflare D1 + Drizzle ORM                                          |
+| Auth                  | Better Auth (anonymous plugin, existing)                             |
+| Temp email provider   | mail.tm (free REST API, proxied through Worker)                      |
 
 ### Effect on the Worker
 
@@ -84,48 +84,49 @@ Two new tables in D1 alongside existing Better Auth tables.
 
 ### `email_accounts`
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | text (cuid2) | PK |
-| `userId` | text | FK → user.id |
-| `email` | text, unique | Full address (e.g. `xk7f9@randmail.org`) |
-| `providerAccountId` | text | mail.tm account ID |
-| `providerToken` | text | mail.tm bearer token (server-side only) |
-| `domain` | text | Domain portion |
-| `label` | text, nullable | Optional user-set label |
-| `createdAt` | integer | Timestamp |
-| `expiresAt` | integer, nullable | Null = manual control, otherwise auto-cleanup |
+| Column              | Type              | Notes                                         |
+| ------------------- | ----------------- | --------------------------------------------- |
+| `id`                | text (cuid2)      | PK                                            |
+| `userId`            | text              | FK → user.id                                  |
+| `email`             | text, unique      | Full address (e.g. `xk7f9@randmail.org`)      |
+| `providerAccountId` | text              | mail.tm account ID                            |
+| `providerToken`     | text              | mail.tm bearer token (server-side only)       |
+| `domain`            | text              | Domain portion                                |
+| `label`             | text, nullable    | Optional user-set label                       |
+| `createdAt`         | integer           | Timestamp                                     |
+| `expiresAt`         | integer, nullable | Null = manual control, otherwise auto-cleanup |
 
 ### `email_messages`
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | text | mail.tm message ID |
-| `emailAccountId` | text | FK → email_accounts.id |
-| `fromAddress` | text | Sender address |
-| `subject` | text, nullable | |
-| `textContent` | text, nullable | Plain text body |
-| `htmlContent` | text, nullable | HTML body |
-| `receivedAt` | integer | Timestamp |
-| `isRead` | integer | 0/1 boolean |
+| Column           | Type           | Notes                  |
+| ---------------- | -------------- | ---------------------- |
+| `id`             | text           | mail.tm message ID     |
+| `emailAccountId` | text           | FK → email_accounts.id |
+| `fromAddress`    | text           | Sender address         |
+| `subject`        | text, nullable |                        |
+| `textContent`    | text, nullable | Plain text body        |
+| `htmlContent`    | text, nullable | HTML body              |
+| `receivedAt`     | integer        | Timestamp              |
+| `isRead`         | integer        | 0/1 boolean            |
 
 ## Worker API Endpoints
 
 All new routes behind `requireUser` middleware. Responses use discriminated unions (`{ ok: true, data } | { ok: false, error }`).
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/email-accounts` | Generate a new burner email (calls mail.tm, stores in D1, returns account without token) |
-| `GET` | `/api/email-accounts` | List user's email accounts (with unread count per account) |
-| `DELETE` | `/api/email-accounts/:id` | Delete an email account and its messages |
-| `PATCH` | `/api/email-accounts/:id` | Update label or expiresAt |
-| `GET` | `/api/email-accounts/:id/messages` | Fetch messages (polls mail.tm for new, caches in D1, returns list) |
-| `GET` | `/api/email-accounts/:id/messages/:msgId` | Get full message content |
-| `PATCH` | `/api/email-accounts/:id/messages/:msgId` | Mark as read/unread |
+| Method   | Path                                      | Description                                                                              |
+| -------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `POST`   | `/api/email-accounts`                     | Generate a new burner email (calls mail.tm, stores in D1, returns account without token) |
+| `GET`    | `/api/email-accounts`                     | List user's email accounts (with unread count per account)                               |
+| `DELETE` | `/api/email-accounts/:id`                 | Delete an email account and its messages                                                 |
+| `PATCH`  | `/api/email-accounts/:id`                 | Update label or expiresAt                                                                |
+| `GET`    | `/api/email-accounts/:id/messages`        | Fetch messages (polls mail.tm for new, caches in D1, returns list)                       |
+| `GET`    | `/api/email-accounts/:id/messages/:msgId` | Get full message content                                                                 |
+| `PATCH`  | `/api/email-accounts/:id/messages/:msgId` | Mark as read/unread                                                                      |
 
 ### `GET /api/email-accounts/:id/messages` behavior
 
 This endpoint syncs with mail.tm before returning:
+
 1. Fetch new messages from mail.tm using the stored provider token
 2. Insert any new messages into D1
 3. Return the full message list from D1
@@ -137,6 +138,7 @@ This builds up a local cache so historical messages remain available even if mai
 ### Email field detection
 
 The content script scans for email input fields:
+
 - `input[type="email"]`
 - `input[autocomplete="email"]`
 - `input[name]` / `input[placeholder]` containing "email" (case-insensitive)
@@ -195,13 +197,13 @@ Extends the existing background SW (which already handles auth).
 
 ### Message types
 
-| Type | Source | Description |
-|------|--------|-------------|
-| `GENERATE_EMAIL` | Content script or popup | Request new burner → call Worker → return email address |
-| `GET_EMAIL_ACCOUNTS` | Popup | Request account list |
-| `GET_MESSAGES` | Popup | Request messages for an account |
-| `FILL_EMAIL` | Content script | Request a specific burner email to fill into an input |
-| `MARK_READ` | Popup | Mark a message as read |
+| Type                 | Source                  | Description                                             |
+| -------------------- | ----------------------- | ------------------------------------------------------- |
+| `GENERATE_EMAIL`     | Content script or popup | Request new burner → call Worker → return email address |
+| `GET_EMAIL_ACCOUNTS` | Popup                   | Request account list                                    |
+| `GET_MESSAGES`       | Popup                   | Request messages for an account                         |
+| `FILL_EMAIL`         | Content script          | Request a specific burner email to fill into an input   |
+| `MARK_READ`          | Popup                   | Mark a message as read                                  |
 
 ### Design principles
 
@@ -221,6 +223,7 @@ All business logic returns `Effect<A, E, R>` with typed errors. Error types are 
 - `EmailMessageNotFoundError` — requested message doesn't exist
 
 Hono handlers run Effect programs via `Effect.runPromise()` and map results to discriminated union JSON responses:
+
 - Success: `{ ok: true, data: T }`
 - Failure: `{ ok: false, error: { code: string, message: string } }`
 
@@ -236,12 +239,12 @@ Unexpected errors caught by Hono's `app.onError()` return a generic 500 response
 
 Neutral dark + blue, mapped to shadcn CSS variables:
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--background` | `#111113` | Page/popup background |
-| `--foreground` | `#ededef` | Primary text |
-| `--primary` | `#3b82f6` | Buttons, active borders, brand accent |
-| `--primary-foreground` | `#ffffff` | Text on primary |
-| `--muted` | `#232329` | Borders, subtle backgrounds |
-| `--muted-foreground` | `#6b6b76` | Secondary text |
-| `--destructive` | `#ef4444` | Delete actions, unread badges |
+| Token                  | Value     | Usage                                 |
+| ---------------------- | --------- | ------------------------------------- |
+| `--background`         | `#111113` | Page/popup background                 |
+| `--foreground`         | `#ededef` | Primary text                          |
+| `--primary`            | `#3b82f6` | Buttons, active borders, brand accent |
+| `--primary-foreground` | `#ffffff` | Text on primary                       |
+| `--muted`              | `#232329` | Borders, subtle backgrounds           |
+| `--muted-foreground`   | `#6b6b76` | Secondary text                        |
+| `--destructive`        | `#ef4444` | Delete actions, unread badges         |

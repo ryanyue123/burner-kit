@@ -49,9 +49,9 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
             const account = yield* emailAccountSvc.get(userId, accountId);
 
             // Fetch from mail.tm
-            const mailTmMessages = yield* mailTm.getMessages(account.providerToken).pipe(
-              Effect.catchAll(() => Effect.succeed({ "hydra:member": [] as never[] })),
-            );
+            const mailTmMessages = yield* mailTm
+              .getMessages(account.providerToken)
+              .pipe(Effect.catchAll(() => Effect.succeed({ "hydra:member": [] as never[] })));
 
             // Upsert new messages into D1
             for (const msg of mailTmMessages["hydra:member"]) {

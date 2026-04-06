@@ -1,6 +1,12 @@
 import { Button } from "@/components/ui/button";
 
-export function Header({ onGenerate, isGenerating }: { onGenerate: () => void; isGenerating: boolean }) {
+export function Header({
+  onGenerate,
+  isGenerating,
+}: {
+  onGenerate: () => void;
+  isGenerating: boolean;
+}) {
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-border">
       <div className="flex items-center gap-2">

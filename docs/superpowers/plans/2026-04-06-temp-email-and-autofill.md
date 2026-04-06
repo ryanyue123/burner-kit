@@ -14,49 +14,50 @@
 
 ### Worker — new/modified files
 
-| File | Responsibility |
-|------|---------------|
-| `apps/worker/src/index.ts` | **Modify** �� add CORS methods (DELETE, PATCH), mount email routes + RPC router |
-| `apps/worker/src/middleware.ts` | **Modify** ��� add Effect runtime factory |
-| `apps/worker/src/db/schema.ts` | **Modify** — add emailAccount + emailMessage tables |
-| `apps/worker/src/errors.ts` | **Create** ��� Effect tagged error classes |
-| `apps/worker/src/schemas.ts` | **Create** — Effect Schema definitions for API request/response shapes |
-| `apps/worker/src/services/mail-tm.ts` | **Create** — Effect service wrapping the mail.tm REST API |
-| `apps/worker/src/services/email-account.ts` | **Create** — Effect service for email account CRUD |
-| `apps/worker/src/services/email-message.ts` | **Create** — Effect service for message sync + retrieval |
-| `apps/worker/src/routes/email-accounts.ts` | **Create** — Hono route handlers for /api/email-accounts |
-| `apps/worker/src/rpc/requests.ts` | **Create** (follow-up) — Effect RPC tagged request definitions (not in this plan; Hono routes used first) |
-| `apps/worker/src/rpc/router.ts` | **Create** (follow-up) — Effect RPC router (not in this plan; can be layered on without UI changes) |
-| `apps/worker/package.json` | **Modify** — add effect, @effect/platform, @effect/rpc, @effect/rpc-http, @hono/effect-validator, @paralleldrive/cuid2 |
+| File                                        | Responsibility                                                                                                         |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `apps/worker/src/index.ts`                  | **Modify** �� add CORS methods (DELETE, PATCH), mount email routes + RPC router                                        |
+| `apps/worker/src/middleware.ts`             | **Modify** ��� add Effect runtime factory                                                                              |
+| `apps/worker/src/db/schema.ts`              | **Modify** — add emailAccount + emailMessage tables                                                                    |
+| `apps/worker/src/errors.ts`                 | **Create** ��� Effect tagged error classes                                                                             |
+| `apps/worker/src/schemas.ts`                | **Create** — Effect Schema definitions for API request/response shapes                                                 |
+| `apps/worker/src/services/mail-tm.ts`       | **Create** — Effect service wrapping the mail.tm REST API                                                              |
+| `apps/worker/src/services/email-account.ts` | **Create** — Effect service for email account CRUD                                                                     |
+| `apps/worker/src/services/email-message.ts` | **Create** — Effect service for message sync + retrieval                                                               |
+| `apps/worker/src/routes/email-accounts.ts`  | **Create** — Hono route handlers for /api/email-accounts                                                               |
+| `apps/worker/src/rpc/requests.ts`           | **Create** (follow-up) — Effect RPC tagged request definitions (not in this plan; Hono routes used first)              |
+| `apps/worker/src/rpc/router.ts`             | **Create** (follow-up) — Effect RPC router (not in this plan; can be layered on without UI changes)                    |
+| `apps/worker/package.json`                  | **Modify** — add effect, @effect/platform, @effect/rpc, @effect/rpc-http, @hono/effect-validator, @paralleldrive/cuid2 |
 
 ### Extension — new/modified files
 
-| File | Responsibility |
-|------|---------------|
-| `apps/extension/package.json` | **Modify** — upgrade react/react-dom to 19, add tailwindcss, @tailwindcss/vite, shadcn deps, @tanstack/react-query, effect-query, @effect/rpc-http, effect |
-| `apps/extension/app.css` | **Create** — Tailwind directives + shadcn CSS variables (dark theme, blue primary) |
-| `apps/extension/components.json` | **Create** — shadcn config (base style, base-nova) |
-| `apps/extension/lib/utils.ts` | **Create** — cn() utility for shadcn |
-| `apps/extension/components/ui/*.tsx` | **Create** — shadcn Base UI components (button, accordion, badge, scroll-area, input, tooltip) |
-| `apps/extension/lib/api-client.ts` | **Create** — Effect RPC client + effect-query setup |
-| `apps/extension/entrypoints/popup/main.tsx` | **Modify** — add QueryClientProvider, import CSS |
-| `apps/extension/entrypoints/popup/App.tsx` | **Modify** — rewrite to accordion inbox UI |
-| `apps/extension/entrypoints/popup/components/header.tsx` | **Create** — popup header with branding + generate button |
-| `apps/extension/entrypoints/popup/components/account-list.tsx` | **Create** — accordion list of email accounts |
-| `apps/extension/entrypoints/popup/components/message-list.tsx` | **Create** — message list within expanded accordion item |
-| `apps/extension/entrypoints/popup/components/message-view.tsx` | **Create** — inline message content viewer |
-| `apps/extension/entrypoints/popup/components/empty-state.tsx` | **Create** — empty state prompt |
-| `apps/extension/entrypoints/background.ts` | **Modify** — add new message types (GENERATE_EMAIL, GET_EMAIL_ACCOUNTS, etc.) |
-| `apps/extension/entrypoints/content.ts` | **Create** — content script entry (email field detection + MutationObserver) |
-| `apps/extension/entrypoints/content/icon.ts` | **Create** — Shadow DOM icon rendering + positioning |
-| `apps/extension/entrypoints/content/panel.tsx` | **Create** — Shadow DOM panel with generate + recent burners |
-| `apps/extension/wxt.config.ts` | **Modify** — add content script config, add host permissions |
+| File                                                           | Responsibility                                                                                                                                             |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/extension/package.json`                                  | **Modify** — upgrade react/react-dom to 19, add tailwindcss, @tailwindcss/vite, shadcn deps, @tanstack/react-query, effect-query, @effect/rpc-http, effect |
+| `apps/extension/app.css`                                       | **Create** — Tailwind directives + shadcn CSS variables (dark theme, blue primary)                                                                         |
+| `apps/extension/components.json`                               | **Create** — shadcn config (base style, base-nova)                                                                                                         |
+| `apps/extension/lib/utils.ts`                                  | **Create** — cn() utility for shadcn                                                                                                                       |
+| `apps/extension/components/ui/*.tsx`                           | **Create** — shadcn Base UI components (button, accordion, badge, scroll-area, input, tooltip)                                                             |
+| `apps/extension/lib/api-client.ts`                             | **Create** — Effect RPC client + effect-query setup                                                                                                        |
+| `apps/extension/entrypoints/popup/main.tsx`                    | **Modify** — add QueryClientProvider, import CSS                                                                                                           |
+| `apps/extension/entrypoints/popup/App.tsx`                     | **Modify** — rewrite to accordion inbox UI                                                                                                                 |
+| `apps/extension/entrypoints/popup/components/header.tsx`       | **Create** — popup header with branding + generate button                                                                                                  |
+| `apps/extension/entrypoints/popup/components/account-list.tsx` | **Create** — accordion list of email accounts                                                                                                              |
+| `apps/extension/entrypoints/popup/components/message-list.tsx` | **Create** — message list within expanded accordion item                                                                                                   |
+| `apps/extension/entrypoints/popup/components/message-view.tsx` | **Create** — inline message content viewer                                                                                                                 |
+| `apps/extension/entrypoints/popup/components/empty-state.tsx`  | **Create** — empty state prompt                                                                                                                            |
+| `apps/extension/entrypoints/background.ts`                     | **Modify** — add new message types (GENERATE_EMAIL, GET_EMAIL_ACCOUNTS, etc.)                                                                              |
+| `apps/extension/entrypoints/content.ts`                        | **Create** — content script entry (email field detection + MutationObserver)                                                                               |
+| `apps/extension/entrypoints/content/icon.ts`                   | **Create** — Shadow DOM icon rendering + positioning                                                                                                       |
+| `apps/extension/entrypoints/content/panel.tsx`                 | **Create** — Shadow DOM panel with generate + recent burners                                                                                               |
+| `apps/extension/wxt.config.ts`                                 | **Modify** — add content script config, add host permissions                                                                                               |
 
 ---
 
 ## Task 1: Upgrade React to 19 + Add Tailwind CSS
 
 **Files:**
+
 - Modify: `apps/extension/package.json`
 - Modify: `apps/extension/wxt.config.ts`
 - Create: `apps/extension/app.css`
@@ -194,6 +195,7 @@ git commit -m "feat(extension): upgrade React 19 + add Tailwind CSS with dark th
 ## Task 2: Initialize shadcn/ui with Base UI Style
 
 **Files:**
+
 - Create: `apps/extension/components.json`
 - Create: `apps/extension/lib/utils.ts`
 - Install shadcn Base UI components
@@ -328,6 +330,7 @@ git commit -m "feat(extension): init shadcn/ui with Base UI style + dark theme"
 ## Task 3: Install Effect Ecosystem on Worker
 
 **Files:**
+
 - Modify: `apps/worker/package.json`
 - Create: `apps/worker/src/errors.ts`
 - Create: `apps/worker/src/runtime.ts`
@@ -367,8 +370,7 @@ Create `apps/worker/src/runtime.ts`:
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpClient } from "@effect/platform";
 
-export const makeAppLayer = () =>
-  Layer.mergeAll(HttpClient.layer);
+export const makeAppLayer = () => Layer.mergeAll(HttpClient.layer);
 
 export const makeRuntime = () => ManagedRuntime.make(makeAppLayer());
 ```
@@ -396,6 +398,7 @@ git commit -m "feat(worker): install Effect ecosystem + define error types"
 ## Task 4: Add email_accounts + email_messages Database Tables
 
 **Files:**
+
 - Modify: `apps/worker/src/db/schema.ts`
 
 - [ ] **Step 1: Add emailAccount table to the schema**
@@ -420,9 +423,7 @@ export const emailAccount = sqliteTable(
       .notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
   },
-  (table) => [
-    index("email_account_userId_idx").on(table.userId),
-  ],
+  (table) => [index("email_account_userId_idx").on(table.userId)],
 );
 
 export const emailMessage = sqliteTable(
@@ -439,9 +440,7 @@ export const emailMessage = sqliteTable(
     receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
     isRead: integer("is_read", { mode: "boolean" }).default(false).notNull(),
   },
-  (table) => [
-    index("email_message_accountId_idx").on(table.emailAccountId),
-  ],
+  (table) => [index("email_message_accountId_idx").on(table.emailAccountId)],
 );
 ```
 
@@ -514,6 +513,7 @@ git commit -m "feat(worker): add email_account + email_message tables"
 ## Task 5: mail.tm Effect Service
 
 **Files:**
+
 - Create: `apps/worker/src/services/mail-tm.ts`
 - Create: `apps/worker/src/schemas.ts`
 
@@ -598,10 +598,7 @@ export class MailTm extends Context.Tag("MailTm")<
       address: string,
       password: string,
     ) => Effect.Effect<typeof MailTmAccount.Type, MailTmError>;
-    readonly getToken: (
-      address: string,
-      password: string,
-    ) => Effect.Effect<string, MailTmError>;
+    readonly getToken: (address: string, password: string) => Effect.Effect<string, MailTmError>;
     readonly getMessages: (
       token: string,
     ) => Effect.Effect<typeof MailTmMessageList.Type, MailTmError>;
@@ -615,19 +612,14 @@ export const MailTmLive = Layer.effect(
 
     const request = (method: string, path: string, body?: unknown, token?: string) =>
       Effect.gen(function* () {
-        let req = HttpClientRequest.make(method)(
-          `${MAIL_TM_API}${path}`,
-        ).pipe(
+        let req = HttpClientRequest.make(method)(`${MAIL_TM_API}${path}`).pipe(
           HttpClientRequest.setHeader("Content-Type", "application/json"),
         );
         if (token) {
           req = HttpClientRequest.setHeader("Authorization", `Bearer ${token}`)(req);
         }
         if (body) {
-          req = HttpClientRequest.setBody(
-            req,
-            HttpClientRequest.jsonBody(body),
-          );
+          req = HttpClientRequest.setBody(req, HttpClientRequest.jsonBody(body));
         }
         const response = yield* client.execute(req).pipe(
           Effect.flatMap(HttpClientResponse.json),
@@ -646,7 +638,9 @@ export const MailTmLive = Layer.effect(
 
       createAccount: (address: string, password: string) =>
         request("POST", "/accounts", { address, password }).pipe(
-          Effect.map((res: any) => ({ id: res.id, address: res.address }) as typeof MailTmAccount.Type),
+          Effect.map(
+            (res: any) => ({ id: res.id, address: res.address }) as typeof MailTmAccount.Type,
+          ),
         ),
 
       getToken: (address: string, password: string) =>
@@ -683,6 +677,7 @@ git commit -m "feat(worker): add mail.tm Effect service + shared schemas"
 ## Task 6: EmailAccount + EmailMessage Effect Services
 
 **Files:**
+
 - Create: `apps/worker/src/services/email-account.ts`
 - Create: `apps/worker/src/services/email-message.ts`
 
@@ -702,18 +697,22 @@ import { EmailAccountNotFoundError, MailTmError } from "../errors";
 export class EmailAccountService extends Context.Tag("EmailAccountService")<
   EmailAccountService,
   {
-    readonly create: (userId: string) => Effect.Effect<
-      typeof schema.emailAccount.$inferSelect,
-      MailTmError
-    >;
-    readonly list: (userId: string) => Effect.Effect<
+    readonly create: (
+      userId: string,
+    ) => Effect.Effect<typeof schema.emailAccount.$inferSelect, MailTmError>;
+    readonly list: (
+      userId: string,
+    ) => Effect.Effect<
       ReadonlyArray<typeof schema.emailAccount.$inferSelect & { unreadCount: number }>
     >;
-    readonly get: (userId: string, accountId: string) => Effect.Effect<
-      typeof schema.emailAccount.$inferSelect,
-      EmailAccountNotFoundError
-    >;
-    readonly remove: (userId: string, accountId: string) => Effect.Effect<void, EmailAccountNotFoundError>;
+    readonly get: (
+      userId: string,
+      accountId: string,
+    ) => Effect.Effect<typeof schema.emailAccount.$inferSelect, EmailAccountNotFoundError>;
+    readonly remove: (
+      userId: string,
+      accountId: string,
+    ) => Effect.Effect<void, EmailAccountNotFoundError>;
     readonly update: (
       userId: string,
       accountId: string,
@@ -803,9 +802,7 @@ export const makeEmailAccountService = (db: DrizzleD1Database<typeof schema>) =>
           }).pipe(
             Effect.orDie,
             Effect.flatMap((row) =>
-              row
-                ? Effect.succeed(row)
-                : Effect.fail(new EmailAccountNotFoundError({ accountId })),
+              row ? Effect.succeed(row) : Effect.fail(new EmailAccountNotFoundError({ accountId })),
             ),
           ),
 
@@ -821,17 +818,22 @@ export const makeEmailAccountService = (db: DrizzleD1Database<typeof schema>) =>
             }).pipe(Effect.orDie);
           }),
 
-        update: (userId: string, accountId: string, data: { label?: string | null; expiresAt?: Date | null }) =>
+        update: (
+          userId: string,
+          accountId: string,
+          data: { label?: string | null; expiresAt?: Date | null },
+        ) =>
           Effect.gen(function* () {
-            yield* EmailAccountService.pipe(
-              Effect.flatMap((svc) => svc.get(userId, accountId)),
-            );
+            yield* EmailAccountService.pipe(Effect.flatMap((svc) => svc.get(userId, accountId)));
             const updates: Record<string, unknown> = {};
             if ("label" in data) updates.label = data.label;
             if ("expiresAt" in data) updates.expiresAt = data.expiresAt;
             yield* Effect.tryPromise({
               try: () =>
-                db.update(schema.emailAccount).set(updates).where(eq(schema.emailAccount.id, accountId)),
+                db
+                  .update(schema.emailAccount)
+                  .set(updates)
+                  .where(eq(schema.emailAccount.id, accountId)),
               catch: (e) => e as Error,
             }).pipe(Effect.orDie);
             return yield* EmailAccountService.pipe(
@@ -899,9 +901,9 @@ export const makeEmailMessageService = (db: DrizzleD1Database<typeof schema>) =>
             const account = yield* emailAccountSvc.get(userId, accountId);
 
             // Fetch from mail.tm
-            const mailTmMessages = yield* mailTm.getMessages(account.providerToken).pipe(
-              Effect.catchAll(() => Effect.succeed({ "hydra:member": [] as any[] })),
-            );
+            const mailTmMessages = yield* mailTm
+              .getMessages(account.providerToken)
+              .pipe(Effect.catchAll(() => Effect.succeed({ "hydra:member": [] as any[] })));
 
             // Upsert new messages into D1
             for (const msg of mailTmMessages["hydra:member"]) {
@@ -992,6 +994,7 @@ git commit -m "feat(worker): add EmailAccount + EmailMessage Effect services"
 ## Task 7: Hono Route Handlers for Email Accounts + Messages
 
 **Files:**
+
 - Create: `apps/worker/src/routes/email-accounts.ts`
 - Modify: `apps/worker/src/index.ts`
 - Modify: `apps/worker/src/runtime.ts`
@@ -1013,10 +1016,7 @@ import type { AppBindings } from "./middleware";
 export function makeAppRuntime(env: AppBindings) {
   const db = drizzle(env.DB, { schema });
 
-  const appLayer = Layer.mergeAll(
-    makeEmailAccountService(db),
-    makeEmailMessageService(db),
-  ).pipe(
+  const appLayer = Layer.mergeAll(makeEmailAccountService(db), makeEmailMessageService(db)).pipe(
     Layer.provide(MailTmLive),
     Layer.provide(FetchHttpClient.layer),
   );
@@ -1043,14 +1043,32 @@ type Env = { Bindings: AppBindings; Variables: AppVariables };
 
 const emailAccounts = new Hono<Env>();
 
-function runEffect<A>(env: AppBindings, effect: Effect.Effect<A, MailTmError | EmailAccountNotFoundError | EmailMessageNotFoundError, EmailAccountService | EmailMessageService>) {
+function runEffect<A>(
+  env: AppBindings,
+  effect: Effect.Effect<
+    A,
+    MailTmError | EmailAccountNotFoundError | EmailMessageNotFoundError,
+    EmailAccountService | EmailMessageService
+  >,
+) {
   const runtime = makeAppRuntime(env);
   return Effect.runPromise(
     effect.pipe(
       Effect.catchTags({
-        MailTmError: (e) => Effect.succeed({ _tag: "error" as const, code: "MAIL_TM_ERROR", message: e.reason }),
-        EmailAccountNotFoundError: (e) => Effect.succeed({ _tag: "error" as const, code: "NOT_FOUND", message: `Account ${e.accountId} not found` }),
-        EmailMessageNotFoundError: (e) => Effect.succeed({ _tag: "error" as const, code: "NOT_FOUND", message: `Message ${e.messageId} not found` }),
+        MailTmError: (e) =>
+          Effect.succeed({ _tag: "error" as const, code: "MAIL_TM_ERROR", message: e.reason }),
+        EmailAccountNotFoundError: (e) =>
+          Effect.succeed({
+            _tag: "error" as const,
+            code: "NOT_FOUND",
+            message: `Account ${e.accountId} not found`,
+          }),
+        EmailMessageNotFoundError: (e) =>
+          Effect.succeed({
+            _tag: "error" as const,
+            code: "NOT_FOUND",
+            message: `Message ${e.messageId} not found`,
+          }),
       }),
       Effect.provide(runtime),
     ),
@@ -1242,6 +1260,7 @@ git commit -m "feat(worker): add email account CRUD routes with Effect services"
 ## Task 8: Extension Client Setup (TanStack Query + API Client)
 
 **Files:**
+
 - Modify: `apps/extension/package.json`
 - Create: `apps/extension/lib/api-client.ts`
 - Modify: `apps/extension/entrypoints/popup/main.tsx`
@@ -1366,6 +1385,7 @@ git commit -m "feat(extension): add TanStack Query + typed API client"
 ## Task 9: Update Background Service Worker
 
 **Files:**
+
 - Modify: `apps/extension/entrypoints/background.ts`
 
 - [ ] **Step 1: Rewrite background.ts with new message types**
@@ -1409,7 +1429,12 @@ type MessageMap = {
   GET_MESSAGE: { type: "GET_MESSAGE"; accountId: string; messageId: string };
   MARK_READ: { type: "MARK_READ"; accountId: string; messageId: string; isRead: boolean };
   DELETE_ACCOUNT: { type: "DELETE_ACCOUNT"; accountId: string };
-  UPDATE_ACCOUNT: { type: "UPDATE_ACCOUNT"; accountId: string; label?: string | null; expiresAt?: number | null };
+  UPDATE_ACCOUNT: {
+    type: "UPDATE_ACCOUNT";
+    accountId: string;
+    label?: string | null;
+    expiresAt?: number | null;
+  };
   GET_ME: { type: "GET_ME" };
 };
 
@@ -1426,7 +1451,9 @@ export default defineBackground(() => {
 
       switch (message.type) {
         case "GET_ME": {
-          const res = await apiRequest<{ userId: string; createdAt: string; isAnonymous: boolean }>("/api/me");
+          const res = await apiRequest<{ userId: string; createdAt: string; isAnonymous: boolean }>(
+            "/api/me",
+          );
           sendResponse(res);
           break;
         }
@@ -1463,19 +1490,18 @@ export default defineBackground(() => {
           break;
         }
         case "DELETE_ACCOUNT": {
-          const res = await apiRequest<void>(
-            `/api/email-accounts/${message.accountId}`,
-            { method: "DELETE" },
-          );
+          const res = await apiRequest<void>(`/api/email-accounts/${message.accountId}`, {
+            method: "DELETE",
+          });
           sendResponse(res);
           break;
         }
         case "UPDATE_ACCOUNT": {
           const { accountId, ...body } = message;
-          const res = await apiRequest<EmailAccount>(
-            `/api/email-accounts/${accountId}`,
-            { method: "PATCH", body: JSON.stringify(body) },
-          );
+          const res = await apiRequest<EmailAccount>(`/api/email-accounts/${accountId}`, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+          });
           sendResponse(res);
           break;
         }
@@ -1506,6 +1532,7 @@ git commit -m "feat(extension): add all message types to background SW"
 ## Task 10: Popup — Accordion Inbox UI
 
 **Files:**
+
 - Modify: `apps/extension/entrypoints/popup/App.tsx`
 - Create: `apps/extension/entrypoints/popup/components/header.tsx`
 - Create: `apps/extension/entrypoints/popup/components/account-list.tsx`
@@ -1560,8 +1587,15 @@ export function useDeleteAccount() {
 export function useMarkRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ accountId, messageId, isRead }: { accountId: string; messageId: string; isRead: boolean }) =>
-      sendMessage<EmailMessage>({ type: "MARK_READ", accountId, messageId, isRead }),
+    mutationFn: ({
+      accountId,
+      messageId,
+      isRead,
+    }: {
+      accountId: string;
+      messageId: string;
+      isRead: boolean;
+    }) => sendMessage<EmailMessage>({ type: "MARK_READ", accountId, messageId, isRead }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", variables.accountId] });
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
@@ -1860,6 +1894,7 @@ git commit -m "feat(extension): accordion inbox popup with TanStack Query"
 ## Task 11: Content Script — Email Field Detection + Icon + Panel
 
 **Files:**
+
 - Create: `apps/extension/entrypoints/content.ts`
 - Create: `apps/extension/entrypoints/content/icon.ts`
 - Create: `apps/extension/entrypoints/content/panel.ts`
@@ -1904,10 +1939,7 @@ Create `apps/extension/entrypoints/content/icon.ts`:
 import { showPanel, hidePanel } from "./panel";
 
 const ICON_SIZE = 16;
-const SELECTORS = [
-  'input[type="email"]',
-  'input[autocomplete="email"]',
-];
+const SELECTORS = ['input[type="email"]', 'input[autocomplete="email"]'];
 const NAME_REGEX = /email/i;
 
 const processed = new WeakSet<HTMLInputElement>();
@@ -1921,12 +1953,10 @@ function isEmailInput(el: HTMLInputElement): boolean {
 }
 
 function findEmailInputs(): HTMLInputElement[] {
-  const bySelector = Array.from(
-    document.querySelectorAll<HTMLInputElement>(SELECTORS.join(",")),
+  const bySelector = Array.from(document.querySelectorAll<HTMLInputElement>(SELECTORS.join(",")));
+  const byName = Array.from(document.querySelectorAll<HTMLInputElement>("input")).filter(
+    (el) => !bySelector.includes(el) && isEmailInput(el),
   );
-  const byName = Array.from(
-    document.querySelectorAll<HTMLInputElement>("input"),
-  ).filter((el) => !bySelector.includes(el) && isEmailInput(el));
   return [...bySelector, ...byName];
 }
 
@@ -2036,10 +2066,7 @@ let panelHost: HTMLDivElement | null = null;
 let currentInput: HTMLInputElement | null = null;
 
 function fillInput(input: HTMLInputElement, value: string) {
-  const nativeSetter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )?.set;
+  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
   if (nativeSetter) {
     nativeSetter.call(input, value);
   } else {
@@ -2049,11 +2076,7 @@ function fillInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function renderPanel(
-  shadow: ShadowRoot,
-  input: HTMLInputElement,
-  accounts: EmailAccount[],
-) {
+function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, accounts: EmailAccount[]) {
   shadow.innerHTML = "";
 
   const style = document.createElement("style");

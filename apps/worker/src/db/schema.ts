@@ -103,9 +103,7 @@ export const emailAccount = sqliteTable(
       .notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
   },
-  (table) => [
-    index("email_account_userId_idx").on(table.userId),
-  ],
+  (table) => [index("email_account_userId_idx").on(table.userId)],
 );
 
 export const emailMessage = sqliteTable(
@@ -122,9 +120,7 @@ export const emailMessage = sqliteTable(
     receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
     isRead: integer("is_read", { mode: "boolean" }).default(false).notNull(),
   },
-  (table) => [
-    index("email_message_accountId_idx").on(table.emailAccountId),
-  ],
+  (table) => [index("email_message_accountId_idx").on(table.emailAccountId)],
 );
 
 export const userRelations = relations(user, ({ many }) => ({

@@ -1,10 +1,7 @@
 import { showPanel, hidePanel } from "./panel";
 
 const ICON_SIZE = 16;
-const SELECTORS = [
-  'input[type="email"]',
-  'input[autocomplete="email"]',
-];
+const SELECTORS = ['input[type="email"]', 'input[autocomplete="email"]'];
 const NAME_REGEX = /email/i;
 
 const processed = new WeakSet<HTMLInputElement>();
@@ -18,12 +15,10 @@ function isEmailInput(el: HTMLInputElement): boolean {
 }
 
 function findEmailInputs(): HTMLInputElement[] {
-  const bySelector = Array.from(
-    document.querySelectorAll<HTMLInputElement>(SELECTORS.join(",")),
+  const bySelector = Array.from(document.querySelectorAll<HTMLInputElement>(SELECTORS.join(",")));
+  const byName = Array.from(document.querySelectorAll<HTMLInputElement>("input")).filter(
+    (el) => !bySelector.includes(el) && isEmailInput(el),
   );
-  const byName = Array.from(
-    document.querySelectorAll<HTMLInputElement>("input"),
-  ).filter((el) => !bySelector.includes(el) && isEmailInput(el));
   return [...bySelector, ...byName];
 }
 

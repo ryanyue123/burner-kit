@@ -11,10 +11,7 @@ export default function App() {
 
   return (
     <main className="min-w-[320px] max-h-[500px] overflow-y-auto bg-background text-foreground">
-      <Header
-        onGenerate={() => generateEmail.mutate()}
-        isGenerating={generateEmail.isPending}
-      />
+      <Header onGenerate={() => generateEmail.mutate()} isGenerating={generateEmail.isPending} />
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
           Loading...

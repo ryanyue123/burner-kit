@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/client";
 import { anonymousClient } from "better-auth/client/plugins";
-import { apiRequest, type EmailAccount, type EmailMessage, type ApiResult } from "@/lib/api-client";
+import { apiRequest, type EmailAccount, type EmailMessage } from "@/lib/api-client";
 
 const API_URL = import.meta.env.WXT_API_URL as string;
 
@@ -34,7 +34,12 @@ type MessageMap = {
   GET_MESSAGE: { type: "GET_MESSAGE"; accountId: string; messageId: string };
   MARK_READ: { type: "MARK_READ"; accountId: string; messageId: string; isRead: boolean };
   DELETE_ACCOUNT: { type: "DELETE_ACCOUNT"; accountId: string };
-  UPDATE_ACCOUNT: { type: "UPDATE_ACCOUNT"; accountId: string; label?: string | null; expiresAt?: number | null };
+  UPDATE_ACCOUNT: {
+    type: "UPDATE_ACCOUNT";
+    accountId: string;
+    label?: string | null;
+    expiresAt?: number | null;
+  };
   GET_ME: { type: "GET_ME" };
 };
 
@@ -51,7 +56,9 @@ export default defineBackground(() => {
 
       switch (message.type) {
         case "GET_ME": {
-          const res = await apiRequest<{ userId: string; createdAt: string; isAnonymous: boolean }>("/api/me");
+          const res = await apiRequest<{ userId: string; createdAt: string; isAnonymous: boolean }>(
+            "/api/me",
+          );
           sendResponse(res);
           break;
         }
@@ -88,19 +95,18 @@ export default defineBackground(() => {
           break;
         }
         case "DELETE_ACCOUNT": {
-          const res = await apiRequest<void>(
-            `/api/email-accounts/${message.accountId}`,
-            { method: "DELETE" },
-          );
+          const res = await apiRequest<void>(`/api/email-accounts/${message.accountId}`, {
+            method: "DELETE",
+          });
           sendResponse(res);
           break;
         }
         case "UPDATE_ACCOUNT": {
           const { accountId, ...body } = message;
-          const res = await apiRequest<EmailAccount>(
-            `/api/email-accounts/${accountId}`,
-            { method: "PATCH", body: JSON.stringify(body) },
-          );
+          const res = await apiRequest<EmailAccount>(`/api/email-accounts/${accountId}`, {
+            method: "PATCH",
+            body: JSON.stringify(body),
+          });
           sendResponse(res);
           break;
         }

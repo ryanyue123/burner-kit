@@ -25,9 +25,7 @@ export function AccountList({ accounts }: { accounts: EmailAccount[] }) {
                 <span className="text-[10px] text-muted-foreground">
                   {isExpanded ? "\u25BC" : "\u25B6"}
                 </span>
-                <span className="text-xs font-mono text-foreground truncate">
-                  {account.email}
-                </span>
+                <span className="text-xs font-mono text-foreground truncate">{account.email}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {(account.unreadCount ?? 0) > 0 && (

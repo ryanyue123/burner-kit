@@ -37,11 +37,16 @@ export function MessageList({ accountId }: { accountId: string }) {
             className="w-full text-left px-3 py-2 hover:bg-secondary/50 transition-colors"
           >
             <div className="flex justify-between items-center">
-              <span className={`text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-medium"}`}>
+              <span
+                className={`text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-medium"}`}
+              >
                 {msg.subject ?? "(no subject)"}
               </span>
               <span className="text-[10px] text-muted-foreground ml-2 shrink-0">
-                {new Date(msg.receivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {new Date(msg.receivedAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
             <div className="text-[10px] text-muted-foreground truncate">{msg.fromAddress}</div>

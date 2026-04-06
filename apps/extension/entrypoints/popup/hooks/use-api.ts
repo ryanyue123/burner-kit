@@ -39,8 +39,15 @@ export function useDeleteAccount() {
 export function useMarkRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ accountId, messageId, isRead }: { accountId: string; messageId: string; isRead: boolean }) =>
-      sendMessage<EmailMessage>({ type: "MARK_READ", accountId, messageId, isRead }),
+    mutationFn: ({
+      accountId,
+      messageId,
+      isRead,
+    }: {
+      accountId: string;
+      messageId: string;
+      isRead: boolean;
+    }) => sendMessage<EmailMessage>({ type: "MARK_READ", accountId, messageId, isRead }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", variables.accountId] });
       queryClient.invalidateQueries({ queryKey: ["email-accounts"] });

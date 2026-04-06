@@ -5,11 +5,7 @@ import { requireUser } from "../middleware";
 import { EmailAccountService } from "../services/email-account";
 import { EmailMessageService } from "../services/email-message";
 import { makeAppRuntime } from "../runtime";
-import {
-  EmailAccountNotFoundError,
-  EmailMessageNotFoundError,
-  MailTmError,
-} from "../errors";
+import { EmailAccountNotFoundError, EmailMessageNotFoundError, MailTmError } from "../errors";
 
 type Env = { Bindings: AppBindings; Variables: AppVariables };
 
@@ -49,12 +45,7 @@ function runEffect<A>(
       Effect.provide(runtime),
     ),
   ).then((result) => {
-    if (
-      result &&
-      typeof result === "object" &&
-      "_tag" in result &&
-      result._tag === "error"
-    ) {
+    if (result && typeof result === "object" && "_tag" in result && result._tag === "error") {
       return { ok: false as const, error: result };
     }
     return { ok: true as const, data: result };
@@ -69,10 +60,11 @@ emailAccounts.post("/", requireUser, async (c) => {
     EmailAccountService.pipe(Effect.flatMap((svc) => svc.create(user.id))),
   );
   if (!result.ok) return c.json(result, 500);
-  const { providerToken, providerAccountId, ...safe } = result.data as Record<
-    string,
-    unknown
-  >;
+  const {
+    providerToken: _pt,
+    providerAccountId: _pa,
+    ...safe
+  } = result.data as Record<string, unknown>;
   return c.json({ ok: true, data: safe }, 201);
 });
 
@@ -92,9 +84,7 @@ emailAccounts.delete("/:id", requireUser, async (c) => {
   const id = c.req.param("id")!;
   const result = await runEffect(
     c.env,
-    EmailAccountService.pipe(
-      Effect.flatMap((svc) => svc.remove(user.id, id)),
-    ),
+    EmailAccountService.pipe(Effect.flatMap((svc) => svc.remove(user.id, id))),
   );
   if (!result.ok) return c.json(result, 404);
   return c.json({ ok: true });
@@ -120,10 +110,11 @@ emailAccounts.patch("/:id", requireUser, async (c) => {
     ),
   );
   if (!result.ok) return c.json(result, 404);
-  const { providerToken, providerAccountId, ...safe } = result.data as Record<
-    string,
-    unknown
-  >;
+  const {
+    providerToken: _pt2,
+    providerAccountId: _pa2,
+    ...safe
+  } = result.data as Record<string, unknown>;
   return c.json({ ok: true, data: safe });
 });
 
@@ -133,9 +124,7 @@ emailAccounts.get("/:id/messages", requireUser, async (c) => {
   const id = c.req.param("id")!;
   const result = await runEffect(
     c.env,
-    EmailMessageService.pipe(
-      Effect.flatMap((svc) => svc.syncAndList(user.id, id)),
-    ),
+    EmailMessageService.pipe(Effect.flatMap((svc) => svc.syncAndList(user.id, id))),
   );
   if (!result.ok) return c.json(result, 404);
   return c.json(result);
@@ -148,9 +137,7 @@ emailAccounts.get("/:id/messages/:msgId", requireUser, async (c) => {
   const msgId = c.req.param("msgId")!;
   const result = await runEffect(
     c.env,
-    EmailMessageService.pipe(
-      Effect.flatMap((svc) => svc.get(user.id, id, msgId)),
-    ),
+    EmailMessageService.pipe(Effect.flatMap((svc) => svc.get(user.id, id, msgId))),
   );
   if (!result.ok) return c.json(result, 404);
   return c.json(result);

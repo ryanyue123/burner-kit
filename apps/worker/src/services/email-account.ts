@@ -9,18 +9,22 @@ import { EmailAccountNotFoundError, MailTmError } from "../errors";
 export class EmailAccountService extends Context.Tag("EmailAccountService")<
   EmailAccountService,
   {
-    readonly create: (userId: string) => Effect.Effect<
-      typeof schema.emailAccount.$inferSelect,
-      MailTmError
-    >;
-    readonly list: (userId: string) => Effect.Effect<
+    readonly create: (
+      userId: string,
+    ) => Effect.Effect<typeof schema.emailAccount.$inferSelect, MailTmError>;
+    readonly list: (
+      userId: string,
+    ) => Effect.Effect<
       ReadonlyArray<typeof schema.emailAccount.$inferSelect & { unreadCount: number }>
     >;
-    readonly get: (userId: string, accountId: string) => Effect.Effect<
-      typeof schema.emailAccount.$inferSelect,
-      EmailAccountNotFoundError
-    >;
-    readonly remove: (userId: string, accountId: string) => Effect.Effect<void, EmailAccountNotFoundError>;
+    readonly get: (
+      userId: string,
+      accountId: string,
+    ) => Effect.Effect<typeof schema.emailAccount.$inferSelect, EmailAccountNotFoundError>;
+    readonly remove: (
+      userId: string,
+      accountId: string,
+    ) => Effect.Effect<void, EmailAccountNotFoundError>;
     readonly update: (
       userId: string,
       accountId: string,
@@ -48,9 +52,7 @@ export const makeEmailAccountService = (db: DrizzleD1Database<typeof schema>) =>
         }).pipe(
           Effect.orDie,
           Effect.flatMap((row) =>
-            row
-              ? Effect.succeed(row)
-              : Effect.fail(new EmailAccountNotFoundError({ accountId })),
+            row ? Effect.succeed(row) : Effect.fail(new EmailAccountNotFoundError({ accountId })),
           ),
         );
 
@@ -132,7 +134,11 @@ export const makeEmailAccountService = (db: DrizzleD1Database<typeof schema>) =>
             }).pipe(Effect.orDie);
           }),
 
-        update: (userId: string, accountId: string, data: { label?: string | null; expiresAt?: Date | null }) =>
+        update: (
+          userId: string,
+          accountId: string,
+          data: { label?: string | null; expiresAt?: Date | null },
+        ) =>
           Effect.gen(function* () {
             yield* getAccount(userId, accountId);
             const updates: Record<string, unknown> = {};
@@ -140,7 +146,10 @@ export const makeEmailAccountService = (db: DrizzleD1Database<typeof schema>) =>
             if ("expiresAt" in data) updates["expiresAt"] = data.expiresAt;
             yield* Effect.tryPromise({
               try: () =>
-                db.update(schema.emailAccount).set(updates).where(eq(schema.emailAccount.id, accountId)),
+                db
+                  .update(schema.emailAccount)
+                  .set(updates)
+                  .where(eq(schema.emailAccount.id, accountId)),
               catch: (e) => e as Error,
             }).pipe(Effect.orDie);
             return yield* getAccount(userId, accountId);

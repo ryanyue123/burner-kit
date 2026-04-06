@@ -1,13 +1,10 @@
 import type { EmailAccount, ApiResult } from "@/lib/api-client";
 
 let panelHost: HTMLDivElement | null = null;
-let currentInput: HTMLInputElement | null = null;
+let __currentInput: HTMLInputElement | null = null;
 
 function fillInput(input: HTMLInputElement, value: string) {
-  const nativeSetter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  )?.set;
+  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
   if (nativeSetter) {
     nativeSetter.call(input, value);
   } else {
@@ -17,11 +14,7 @@ function fillInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function renderPanel(
-  shadow: ShadowRoot,
-  input: HTMLInputElement,
-  accounts: EmailAccount[],
-) {
+function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, accounts: EmailAccount[]) {
   shadow.innerHTML = "";
 
   const style = document.createElement("style");
@@ -134,7 +127,7 @@ function renderPanel(
 
 export async function showPanel(input: HTMLInputElement, iconHost: HTMLDivElement) {
   hidePanel();
-  currentInput = input;
+  _currentInput = input;
 
   panelHost = document.createElement("div");
   panelHost.style.position = "absolute";
@@ -180,5 +173,5 @@ export function hidePanel() {
     panelHost.remove();
     panelHost = null;
   }
-  currentInput = null;
+  _currentInput = null;
 }

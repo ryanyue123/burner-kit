@@ -12,9 +12,7 @@ export function makeAppRuntime(env: AppBindings) {
 
   const mailTmLayer = MailTmLive.pipe(Layer.provide(FetchHttpClient.layer));
 
-  const emailAccountLayer = makeEmailAccountService(db).pipe(
-    Layer.provide(mailTmLayer),
-  );
+  const emailAccountLayer = makeEmailAccountService(db).pipe(Layer.provide(mailTmLayer));
 
   const emailMessageLayer = makeEmailMessageService(db).pipe(
     Layer.provide(emailAccountLayer),
