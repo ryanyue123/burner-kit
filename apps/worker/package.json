@@ -12,8 +12,13 @@
     "db:migrate:local": "wrangler d1 migrations apply burner-kit-dev --local"
   },
   "dependencies": {
+    "@effect/platform": "^0.96.0",
+    "@effect/rpc": "^0.75.0",
+    "@hono/effect-validator": "^1.2.0",
+    "@paralleldrive/cuid2": "^3.3.0",
     "better-auth": "^1.5.6",
     "drizzle-orm": "^0.45.2",
+    "effect": "^3.21.0",
     "hono": "^4.6.0"
   },
   "devDependencies": {
