@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { attachAuth, requireUser, type AppBindings, type AppVariables } from "./middleware";
+import emailAccounts from "./routes/email-accounts";
 
 const app = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
 
@@ -9,7 +10,7 @@ app.use("*", (c, next) =>
     origin: c.env.EXTENSION_ORIGIN ?? "*",
     credentials: true,
     allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "DELETE", "PATCH", "OPTIONS"],
     maxAge: 600,
   })(c, next),
 );
@@ -35,5 +36,7 @@ app.get("/api/me", requireUser, (c) => {
     isAnonymous: user.isAnonymous ?? false,
   });
 });
+
+app.route("/api/email-accounts", emailAccounts);
 
 export default app;
