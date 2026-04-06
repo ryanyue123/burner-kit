@@ -43,7 +43,7 @@ Add the first product functionality to Burner Kit: generating temporary email ad
 
 | Layer | Technology |
 |-------|-----------|
-| Extension UI | React 18 + shadcn/ui (Base UI style, `@base-ui/react`) + Tailwind v4 |
+| Extension UI | React + shadcn/ui (Base UI style, `@base-ui/react`) + Tailwind CSS |
 | Extension framework | WXT (MV3) |
 | Color scheme | Neutral dark + blue primary (#3b82f6), shadcn dark theme (base-nova) |
 | API client | `@effect/rpc-http` + TanStack Query via `effect-query` |
@@ -76,7 +76,7 @@ On the extension side, `@effect/rpc-http` provides a typed client (HttpResolver)
 
 ### shadcn/ui with Base UI
 
-The extension uses shadcn/ui's Base UI style variant (`base-nova`), which is built on `@base-ui/react` instead of Radix primitives. Components are installed via `npx shadcn@latest add <component>` with the base style selected. This provides the same shadcn component API and Tailwind v4 styling but with Base UI's lighter, more composable primitives underneath.
+The extension uses shadcn/ui's Base UI style variant (`base-nova`), which is built on `@base-ui/react` instead of Radix primitives. Components are installed via `npx shadcn@latest add <component>` with the base style selected. This provides the same shadcn component API and Tailwind CSS styling but with Base UI's lighter, more composable primitives underneath.
 
 ## Data Model
 
