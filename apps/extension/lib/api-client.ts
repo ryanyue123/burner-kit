@@ -17,14 +17,19 @@ export async function apiRequest<T>(
         ...options.headers,
       },
     });
-    const body = await res.json();
     if (!res.ok) {
+      const body = await res.json().catch(() => null);
       return {
         ok: false,
-        error: body.error ?? { code: "HTTP_ERROR", message: `HTTP ${res.status}` },
+        error: body ?? { code: "HTTP_ERROR", message: `HTTP ${res.status}` },
       };
     }
-    return body as ApiResult<T>;
+    // 204 No Content (e.g. DELETE)
+    if (res.status === 204) {
+      return { ok: true, data: undefined as T };
+    }
+    const data = await res.json();
+    return { ok: true, data: data as T };
   } catch (err) {
     return { ok: false, error: { code: "NETWORK_ERROR", message: (err as Error).message } };
   }

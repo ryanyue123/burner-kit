@@ -1,9 +1,13 @@
-import { Context, Effect, Layer, pipe } from "effect";
+import { Context, Effect, Layer, Schema, pipe } from "effect";
 import { HttpClient, HttpClientRequest } from "@effect/platform";
 import { MailTmError } from "../errors";
 import { MailTmAccount, MailTmDomain, MailTmMessage, MailTmMessageList } from "../schemas";
 
 const MAIL_TM_API = "https://api.mail.tm";
+
+const MailTmDomainResponse = Schema.Struct({
+  "hydra:member": Schema.Array(MailTmDomain),
+});
 
 export class MailTm extends Context.Tag("MailTm")<
   MailTm,
@@ -60,33 +64,36 @@ export const MailTmLive = Layer.effect(
         ),
       );
 
+    const decode =
+      <A, I>(schema: Schema.Schema<A, I>) =>
+      (data: unknown) =>
+        Schema.decodeUnknown(schema)(data).pipe(
+          Effect.catchAll((e) =>
+            Effect.fail(new MailTmError({ reason: `mail.tm decode failed: ${e}` })),
+          ),
+        );
+
     return {
       getDomains: () =>
         doGet("/domains").pipe(
-          Effect.map((res: any) => res["hydra:member"] as ReadonlyArray<typeof MailTmDomain.Type>),
+          Effect.flatMap(decode(MailTmDomainResponse)),
+          Effect.map((res) => res["hydra:member"]),
         ),
 
       createAccount: (address: string, password: string) =>
-        doPost("/accounts", { address, password }).pipe(
-          Effect.map(
-            (res: any) =>
-              ({
-                id: res.id,
-                address: res.address,
-              }) as typeof MailTmAccount.Type,
-          ),
-        ),
+        doPost("/accounts", { address, password }).pipe(Effect.flatMap(decode(MailTmAccount))),
 
       getToken: (address: string, password: string) =>
-        doPost("/token", { address, password }).pipe(Effect.map((res: any) => res.token as string)),
+        doPost("/token", { address, password }).pipe(
+          Effect.flatMap(decode(Schema.Struct({ token: Schema.String }))),
+          Effect.map((res) => res.token),
+        ),
 
       getMessages: (token: string) =>
-        doGet("/messages", token).pipe(Effect.map((res) => res as typeof MailTmMessageList.Type)),
+        doGet("/messages", token).pipe(Effect.flatMap(decode(MailTmMessageList))),
 
       getMessage: (token: string, messageId: string) =>
-        doGet(`/messages/${messageId}`, token).pipe(
-          Effect.map((res) => res as typeof MailTmMessage.Type),
-        ),
+        doGet(`/messages/${messageId}`, token).pipe(Effect.flatMap(decode(MailTmMessage))),
     };
   }),
 );

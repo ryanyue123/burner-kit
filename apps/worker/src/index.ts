@@ -1,42 +1,46 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { attachAuth, requireUser, type AppBindings, type AppVariables } from "./middleware";
-import emailAccounts from "./routes/email-accounts";
+import { HttpApiBuilder } from "@effect/platform";
+import { createAuth } from "./auth";
+import { makeAppLayer } from "./runtime";
+import type { AppBindings } from "./middleware";
 
-const app = new Hono<{ Bindings: AppBindings; Variables: AppVariables }>();
+function corsHeaders(env: AppBindings) {
+  return {
+    "Access-Control-Allow-Origin": env.EXTENSION_ORIGIN ?? "*",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "600",
+  };
+}
 
-app.use("*", (c, next) =>
-  cors({
-    origin: c.env.EXTENSION_ORIGIN ?? "*",
-    credentials: true,
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "DELETE", "PATCH", "OPTIONS"],
-    maxAge: 600,
-  })(c, next),
-);
+export default {
+  async fetch(request: Request, env: AppBindings): Promise<Response> {
+    const cors = corsHeaders(env);
 
-app.use("*", attachAuth);
+    // CORS preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: cors });
+    }
 
-// Better Auth handler — must come before our app routes so its own
-// /api/auth/* routes are served by Better Auth directly.
-app.on(["GET", "POST"], "/api/auth/*", (c) => {
-  const auth = c.get("auth");
-  return auth.handler(c.req.raw);
-});
+    const url = new URL(request.url);
 
-// Public health check
-app.get("/", (c) => c.json({ ok: true, service: "burner-kit-worker" }));
+    // Better Auth routes — served by Better Auth directly
+    if (url.pathname.startsWith("/api/auth/")) {
+      const auth = createAuth(env);
+      const res = await auth.handler(request);
+      for (const [k, v] of Object.entries(cors)) {
+        res.headers.set(k, v);
+      }
+      return res;
+    }
 
-// Protected: returns the current anonymous user
-app.get("/api/me", requireUser, (c) => {
-  const user = c.get("user")!;
-  return c.json({
-    userId: user.id,
-    createdAt: user.createdAt,
-    isAnonymous: user.isAnonymous ?? false,
-  });
-});
+    // All other routes — Effect HttpApi
+    const { handler } = HttpApiBuilder.toWebHandler(makeAppLayer(env));
+    const res = await handler(request);
 
-app.route("/api/email-accounts", emailAccounts);
-
-export default app;
+    for (const [k, v] of Object.entries(cors)) {
+      res.headers.set(k, v);
+    }
+    return res;
+  },
+};

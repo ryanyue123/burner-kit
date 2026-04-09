@@ -1,17 +1,7 @@
-import type { Context, Next } from "hono";
-import { createAuth, type Auth } from "./auth";
-
-type AuthUser = {
-  id: string;
-  createdAt: Date;
-  isAnonymous?: boolean;
-};
-
-type AuthSession = {
-  id: string;
-  userId: string;
-  expiresAt: Date;
-};
+import { Context, Effect, Layer } from "effect";
+import { HttpApiMiddleware, HttpServerRequest } from "@effect/platform";
+import { type Auth } from "./auth";
+import { UnauthorizedError } from "./errors";
 
 export type AppBindings = {
   DB: D1Database;
@@ -20,33 +10,37 @@ export type AppBindings = {
   EXTENSION_ORIGIN?: string;
 };
 
-export type AppVariables = {
-  user: AuthUser | null;
-  session: AuthSession | null;
-  auth: Auth;
+export type AuthUser = {
+  id: string;
+  createdAt: Date;
+  isAnonymous?: boolean;
 };
 
-export async function attachAuth(
-  c: Context<{ Bindings: AppBindings; Variables: AppVariables }>,
-  next: Next,
-) {
-  const auth = createAuth(c.env);
-  c.set("auth", auth);
+export class CurrentUser extends Context.Tag("CurrentUser")<CurrentUser, AuthUser>() {}
 
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  c.set("user", (session?.user as AuthUser | undefined) ?? null);
-  c.set("session", (session?.session as AuthSession | undefined) ?? null);
+export class AuthMiddleware extends HttpApiMiddleware.Tag<AuthMiddleware>()("AuthMiddleware", {
+  failure: UnauthorizedError,
+  provides: CurrentUser,
+}) {}
 
-  await next();
-}
-
-export async function requireUser(
-  c: Context<{ Bindings: AppBindings; Variables: AppVariables }>,
-  next: Next,
-) {
-  const user = c.get("user");
-  if (!user) {
-    return c.json({ error: "unauthorized" }, 401);
-  }
-  await next();
-}
+export const makeAuthMiddlewareLive = (auth: Auth) =>
+  Layer.succeed(
+    AuthMiddleware,
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const headers = request.headers;
+      const session = yield* Effect.tryPromise({
+        try: () => auth.api.getSession({ headers: new Headers(headers) }),
+        catch: () => new UnauthorizedError(),
+      });
+      if (!session?.user) {
+        return yield* Effect.fail(new UnauthorizedError());
+      }
+      const user = session.user as { id: string; createdAt: string | Date; isAnonymous?: boolean };
+      return {
+        id: user.id,
+        createdAt: user.createdAt instanceof Date ? user.createdAt : new Date(user.createdAt),
+        isAnonymous: user.isAnonymous ?? false,
+      };
+    }),
+  );
