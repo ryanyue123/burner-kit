@@ -60,9 +60,12 @@ function createIcon(input: HTMLInputElement): HTMLDivElement {
   const icon = document.createElement("div");
   icon.className = "bk-icon";
   icon.textContent = "B";
+  let hideTimer: ReturnType<typeof setTimeout>;
+
   icon.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
+    clearTimeout(hideTimer);
     showPanel(input, host);
   });
 
@@ -81,7 +84,7 @@ function createIcon(input: HTMLInputElement): HTMLDivElement {
   }
 
   function hide() {
-    setTimeout(() => {
+    hideTimer = setTimeout(() => {
       if (document.activeElement !== input) {
         icon.classList.remove("visible");
         hidePanel();
@@ -92,7 +95,6 @@ function createIcon(input: HTMLInputElement): HTMLDivElement {
   input.addEventListener("focus", show);
   input.addEventListener("mouseenter", show);
   input.addEventListener("blur", hide);
-  input.addEventListener("mouseleave", hide);
 
   document.body.appendChild(host);
   return host;
