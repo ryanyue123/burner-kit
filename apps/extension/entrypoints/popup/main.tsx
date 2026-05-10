@@ -3,7 +3,8 @@ import ReactDOM from "react-dom/client";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import App from "./App";
+import { RouterProvider } from "@tanstack/react-router";
+import { router } from "./router";
 import "../../app.css";
 
 const queryClient = new QueryClient({
@@ -11,8 +12,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
-      staleTime: 30_000, // data considered fresh for 30s
-      gcTime: 1000 * 60 * 60, // keep unused cache for 1 hour
+      staleTime: 30_000,
+      gcTime: 1000 * 60 * 60,
     },
   },
 });
@@ -32,7 +33,7 @@ ReactDOM.createRoot(root).render(
       client={queryClient}
       persistOptions={{ persister, maxAge: 1000 * 60 * 60 }}
     >
-      <App />
+      <RouterProvider router={router} />
     </PersistQueryClientProvider>
   </React.StrictMode>,
 );
