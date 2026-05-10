@@ -42,6 +42,7 @@ export type EmailAccount = {
   label: string | null;
   createdAt: number;
   expiresAt: number | null;
+  messageCount?: number;
   unreadCount?: number;
 };
 

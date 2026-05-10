@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { createId } from "@paralleldrive/cuid2";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
@@ -15,7 +15,9 @@ export class EmailAccountService extends Context.Tag("EmailAccountService")<
     readonly list: (
       userId: string,
     ) => Effect.Effect<
-      ReadonlyArray<typeof schema.emailAccount.$inferSelect & { unreadCount: number }>,
+      ReadonlyArray<
+        typeof schema.emailAccount.$inferSelect & { messageCount: number; unreadCount: number }
+      >,
       DatabaseError
     >;
     readonly get: (
@@ -105,11 +107,17 @@ export const EmailAccountServiceLive = Layer.effect(
               label: schema.emailAccount.label,
               createdAt: schema.emailAccount.createdAt,
               expiresAt: schema.emailAccount.expiresAt,
-              unreadCount: sql<number>`(
-                    SELECT COUNT(*) FROM email_message
-                    WHERE email_account_id = ${schema.emailAccount.id}
-                    AND is_read = 0
-                  )`.as("unread_count"),
+              messageCount: db.$count(
+                schema.emailMessage,
+                eq(schema.emailMessage.emailAccountId, schema.emailAccount.id),
+              ),
+              unreadCount: db.$count(
+                schema.emailMessage,
+                and(
+                  eq(schema.emailMessage.emailAccountId, schema.emailAccount.id),
+                  eq(schema.emailMessage.isRead, false),
+                ),
+              ),
             })
             .from(schema.emailAccount)
             .where(eq(schema.emailAccount.userId, userId))

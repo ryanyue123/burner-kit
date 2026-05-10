@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, Check, Trash2 } from "lucide-react";
+import pluralize from "pluralize-esm";
 import { Button } from "@/components/ui/button";
 import { useDeleteAccount } from "../hooks/use-api";
 import type { EmailAccount } from "@/lib/api-client";
@@ -34,7 +35,9 @@ export function AccountList({
             <div className="min-w-0">
               <div className="text-xs font-mono text-foreground truncate">{account.email}</div>
               <div className="text-[10px] text-muted-foreground mt-0.5">
-                {(account.unreadCount ?? 0) > 0 ? `${account.unreadCount} unread` : "No messages"}
+                {(account.messageCount ?? 0) > 0
+                  ? `${pluralize("message", account.messageCount ?? 0, true)}${(account.unreadCount ?? 0) > 0 ? ` · ${account.unreadCount} unread` : ""}`
+                  : "No messages"}
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0 ml-2">

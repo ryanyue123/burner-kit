@@ -17,6 +17,7 @@ export const AccountResponse = Schema.Struct({
   label: Schema.NullOr(Schema.String),
   createdAt: Schema.Number,
   expiresAt: Schema.NullOr(Schema.Number),
+  messageCount: Schema.optional(Schema.Number),
   unreadCount: Schema.optional(Schema.Number),
 });
 

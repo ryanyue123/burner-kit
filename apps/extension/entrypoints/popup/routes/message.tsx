@@ -30,7 +30,7 @@ export function MessageRoute() {
   return (
     <div className="flex flex-col max-h-[500px]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+      <div className="flex items-center gap-2 px-4 h-[var(--header-h)] border-b border-border">
         <Button
           variant="ghost"
           size="icon-sm"

@@ -6,14 +6,19 @@ import { useEmailAccounts, useGenerateEmail } from "../hooks/use-api";
 
 export function AccountsRoute() {
   const navigate = useNavigate();
-  const { data, isLoading } = useEmailAccounts();
+  const { data, isLoading, refetch, isFetching } = useEmailAccounts();
   const generateEmail = useGenerateEmail();
 
   const accounts = data?.ok ? data.data : [];
 
   return (
     <>
-      <Header onGenerate={() => generateEmail.mutate()} isGenerating={generateEmail.isPending} />
+      <Header
+        onGenerate={() => generateEmail.mutate()}
+        isGenerating={generateEmail.isPending}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+      />
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
           Loading...

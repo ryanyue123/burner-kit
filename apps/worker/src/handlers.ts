@@ -9,7 +9,7 @@ import type * as schema from "./db/schema";
 // ── Mappers ───────────────────────────────────────────────────
 
 const toAccountResponse = (
-  row: typeof schema.emailAccount.$inferSelect & { unreadCount?: number },
+  row: typeof schema.emailAccount.$inferSelect & { messageCount?: number; unreadCount?: number },
 ) => ({
   id: row.id,
   email: row.email,
@@ -17,6 +17,7 @@ const toAccountResponse = (
   label: row.label,
   createdAt: row.createdAt.getTime(),
   expiresAt: row.expiresAt?.getTime() ?? null,
+  messageCount: row.messageCount,
   unreadCount: row.unreadCount,
 });
 
