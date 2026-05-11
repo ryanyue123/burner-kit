@@ -14,6 +14,9 @@ importers:
       lefthook:
         specifier: ^2.1.5
         version: 2.1.5
+      openlogs:
+        specifier: ^0.0.2
+        version: 0.0.2(react@19.2.4)
       oxfmt:
         specifier: ^0.43.0
         version: 0.43.0
@@ -3220,6 +3223,21 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
+  openlogs@0.0.2:
+    resolution: {integrity: sha512-twB0l80GH7GIB7YZvhZ1URmeagrVZ7Gqo8grQzdNpyoSbphNV0j3nkvLFyOgaNUX8ySUEa1a38WSqjJhIPKmOg==}
+    hasBin: true
+    peerDependencies:
+      react: '>=18'
+      svelte: '>=4'
+      vue: '>=3'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+
   ora@8.2.0:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
@@ -6332,6 +6350,10 @@ snapshots:
       define-lazy-prop: 2.0.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
+
+  openlogs@0.0.2(react@19.2.4):
+    optionalDependencies:
+      react: 19.2.4
 
   ora@8.2.0:
     dependencies:
