@@ -1,5 +1,5 @@
-import { showOtpPanel, hidePanel } from "./otp-panel";
-import type { OtpTarget } from "./otp-target";
+import { showCodePanel, hideCodePanel } from "./code-panel";
+import type { CodeTarget } from "./code-target";
 
 const ICON_SIZE = 16;
 const NAME_REGEX = /(otp|2fa|verification|confirmation|code|passcode|pin)/i;
@@ -29,7 +29,7 @@ function isSingleCodeInput(el: HTMLInputElement): boolean {
 function findGroupTargets(
   inputs: HTMLInputElement[],
   used: WeakSet<HTMLInputElement>,
-): OtpTarget[] {
+): CodeTarget[] {
   const byParent = new Map<Element, HTMLInputElement[]>();
   for (const el of inputs) {
     if (el.maxLength !== 1) continue;
@@ -40,7 +40,7 @@ function findGroupTargets(
     list.push(el);
     byParent.set(parent, list);
   }
-  const targets: OtpTarget[] = [];
+  const targets: CodeTarget[] = [];
   for (const group of byParent.values()) {
     if (group.length >= 3) {
       for (const el of group) used.add(el);
@@ -50,7 +50,7 @@ function findGroupTargets(
   return targets;
 }
 
-function findCodeTargets(): OtpTarget[] {
+function findCodeTargets(): CodeTarget[] {
   const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
   const used = new WeakSet<HTMLInputElement>();
   const targets = findGroupTargets(inputs, used);
@@ -64,7 +64,7 @@ function findCodeTargets(): OtpTarget[] {
   return targets;
 }
 
-function createIcon(target: OtpTarget): HTMLDivElement {
+function createIcon(target: CodeTarget): HTMLDivElement {
   const anchor = target.anchor;
   const host = document.createElement("div");
   host.style.position = "absolute";
@@ -105,7 +105,7 @@ function createIcon(target: OtpTarget): HTMLDivElement {
     e.stopPropagation();
     e.preventDefault();
     clearTimeout(hideTimer);
-    showOtpPanel(target, host);
+    showCodePanel(target, host);
   });
 
   shadow.appendChild(style);
@@ -134,7 +134,7 @@ function createIcon(target: OtpTarget): HTMLDivElement {
       const active = document.activeElement;
       if (!target.inputs.some((i) => i === active)) {
         icon.classList.remove("visible");
-        hidePanel();
+        hideCodePanel();
       }
     }, 200);
   }
@@ -149,7 +149,7 @@ function createIcon(target: OtpTarget): HTMLDivElement {
   return host;
 }
 
-export function attachOtpIcons() {
+export function attachCodeIcons() {
   for (const [anchor, host] of attached) {
     if (!document.contains(anchor)) {
       host.remove();
@@ -164,10 +164,10 @@ export function attachOtpIcons() {
 
 let debounceTimer: ReturnType<typeof setTimeout>;
 
-export function observeNewOtpInputs() {
+export function observeNewCodeInputs() {
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(attachOtpIcons, 300);
+    debounceTimer = setTimeout(attachCodeIcons, 300);
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }

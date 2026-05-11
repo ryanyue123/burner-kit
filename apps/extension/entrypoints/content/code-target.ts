@@ -1,4 +1,4 @@
-export type OtpTarget = {
+export type CodeTarget = {
   inputs: HTMLInputElement[];
   anchor: HTMLInputElement;
 };

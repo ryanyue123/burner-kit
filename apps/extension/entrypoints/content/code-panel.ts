@@ -1,5 +1,5 @@
 import type { ApiResult } from "@/lib/api-client";
-import type { OtpTarget } from "./otp-target";
+import type { CodeTarget } from "./code-target";
 
 let panelHost: HTMLDivElement | null = null;
 
@@ -25,7 +25,7 @@ function fillInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function fillTarget(target: OtpTarget, code: string) {
+function fillTarget(target: CodeTarget, code: string) {
   if (target.inputs.length === 1) {
     const input = target.inputs[0]!;
     fillInput(input, code);
@@ -45,7 +45,7 @@ function fillTarget(target: OtpTarget, code: string) {
 
 type LatestCode = { code: string; fromAddress: string; receivedAt: number };
 
-function renderPanel(shadow: ShadowRoot, target: OtpTarget, latest: LatestCode | null) {
+function renderPanel(shadow: ShadowRoot, target: CodeTarget, latest: LatestCode | null) {
   shadow.innerHTML = "";
 
   const style = document.createElement("style");
@@ -130,7 +130,7 @@ function renderPanel(shadow: ShadowRoot, target: OtpTarget, latest: LatestCode |
     fillBtn.textContent = "Use code";
     fillBtn.addEventListener("click", () => {
       fillTarget(target, latest.code);
-      hidePanel();
+      hideCodePanel();
     });
     row.appendChild(fillBtn);
 
@@ -150,8 +150,8 @@ function renderPanel(shadow: ShadowRoot, target: OtpTarget, latest: LatestCode |
   shadow.appendChild(panel);
 }
 
-export async function showOtpPanel(target: OtpTarget, iconHost: HTMLDivElement) {
-  hidePanel();
+export async function showCodePanel(target: CodeTarget, iconHost: HTMLDivElement) {
+  hideCodePanel();
 
   if (!document.contains(target.anchor)) return;
 
@@ -177,7 +177,7 @@ export async function showOtpPanel(target: OtpTarget, iconHost: HTMLDivElement) 
 
   function onClickOutside(e: MouseEvent) {
     if (panelHost && !panelHost.contains(e.target as Node) && e.target !== iconHost) {
-      hidePanel();
+      hideCodePanel();
       document.removeEventListener("click", onClickOutside);
       document.removeEventListener("keydown", onKeydown);
     }
@@ -186,7 +186,7 @@ export async function showOtpPanel(target: OtpTarget, iconHost: HTMLDivElement) 
 
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      hidePanel();
+      hideCodePanel();
       document.removeEventListener("keydown", onKeydown);
       document.removeEventListener("click", onClickOutside);
     }
@@ -194,7 +194,7 @@ export async function showOtpPanel(target: OtpTarget, iconHost: HTMLDivElement) 
   document.addEventListener("keydown", onKeydown);
 }
 
-export function hidePanel() {
+export function hideCodePanel() {
   if (panelHost) {
     panelHost.remove();
     panelHost = null;
