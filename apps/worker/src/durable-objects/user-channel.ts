@@ -1,11 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { Schema } from "effect";
+import { MercureSubscriber } from "../services/mail-tm-mercure";
 
 // ---------- Wire protocol ----------
-// Schemas are the source of truth; types are derived. Both ends of the
-// extension↔DO connection re-declare these in sync (see
-// `apps/extension/lib/user-channel-client.ts`).
-
 export const ChannelOutbound = Schema.Union(
   Schema.Struct({ type: Schema.Literal("hello"), userId: Schema.String }),
   Schema.Struct({
@@ -37,12 +34,10 @@ interface SocketAttachment {
 const ACTIVE_TTL_MS = 90_000;
 
 export class UserChannel extends DurableObject<Env> {
-  /**
-   * HTTP entry. Expects a WebSocket Upgrade with a `userId` injected by the
-   * parent Worker (which validates the session). The DO trusts this header
-   * because routing is keyed by `idFromName(userId)` and only the Worker
-   * can construct that stub.
-   */
+  /** In-memory only — wiped on hibernation. Rebuilt on activate. */
+  private subscribers = new Map<string, MercureSubscriber>();
+  private active = false;
+
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("expected websocket", { status: 426 });
@@ -57,6 +52,7 @@ export class UserChannel extends DurableObject<Env> {
     server.serializeAttachment({ userId } satisfies SocketAttachment);
 
     this.send(server, { type: "hello", userId });
+    await this.activate(userId);
 
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -67,13 +63,15 @@ export class UserChannel extends DurableObject<Env> {
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return; // malformed JSON, drop silently
+      return;
     }
     const result = decodeInbound(parsed);
-    if (result._tag === "Left") return; // schema mismatch, drop silently
+    if (result._tag === "Left") return;
     const msg = result.right;
     if (msg.type === "heartbeat" || msg.type === "subscribe") {
       await this.extendAlarm();
+      const att = ws.deserializeAttachment() as SocketAttachment | null;
+      if (att?.userId) await this.activate(att.userId);
     }
   }
 
@@ -86,15 +84,21 @@ export class UserChannel extends DurableObject<Env> {
   }
 
   async webSocketError(_ws: WebSocket, _err: unknown): Promise<void> {
-    // logged by runtime; nothing to do — the socket will close
+    // socket will close
   }
 
-  /** Called by other Workers via RPC to ensure mercure subscriptions are open. */
   async ensureSubscribed(): Promise<void> {
+    const userId = this.userIdFromAnySocket();
+    if (!userId) {
+      // No socket yet — set an alarm so we'll re-check soon. The next WS
+      // connect (or heartbeat) will pick up the burner.
+      await this.extendAlarm();
+      return;
+    }
     await this.extendAlarm();
+    await this.activate(userId);
   }
 
-  /** Called by other Workers via RPC when extraction completes. */
   async pushCode(payload: {
     accountId: string;
     messageId: string;
@@ -109,7 +113,26 @@ export class UserChannel extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
-    // Stub: filled in by Task 4 — tears down Mercure subscriptions.
+    await this.deactivate();
+  }
+
+  // ------------------------------------------------------------------
+  // State transitions
+  // ------------------------------------------------------------------
+
+  private async activate(_userId: string): Promise<void> {
+    if (this.active) return;
+    this.active = true;
+    // Mercure subscription setup arrives in Task 5. For now this is a no-op
+    // beyond flipping the flag.
+  }
+
+  private async deactivate(): Promise<void> {
+    this.active = false;
+    for (const sub of this.subscribers.values()) sub.close();
+    this.subscribers.clear();
+    // We do NOT close the WebSocket here — clients stay attached and
+    // hibernate. The next heartbeat will re-activate via the inbound handler.
   }
 
   // ------------------------------------------------------------------
@@ -120,16 +143,23 @@ export class UserChannel extends DurableObject<Env> {
     await this.ctx.storage.setAlarm(Date.now() + ACTIVE_TTL_MS);
   }
 
+  private userIdFromAnySocket(): string | null {
+    for (const ws of this.ctx.getWebSockets()) {
+      const att = ws.deserializeAttachment() as SocketAttachment | null;
+      if (att?.userId) return att.userId;
+    }
+    return null;
+  }
+
   private broadcast(msg: ChannelOutbound): void {
-    const sockets = this.ctx.getWebSockets();
-    for (const ws of sockets) this.send(ws, msg);
+    for (const ws of this.ctx.getWebSockets()) this.send(ws, msg);
   }
 
   private send(ws: WebSocket, msg: ChannelOutbound): void {
     try {
       ws.send(JSON.stringify(msg));
     } catch {
-      // socket closed mid-broadcast; the runtime will fire webSocketClose
+      // socket closed mid-broadcast
     }
   }
 }
