@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Copy, Check, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Trash2, RefreshCw } from "lucide-react";
+import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { Button } from "@/components/ui/button";
 import { useMessages, useMarkRead, useDeleteAccount, useEmailAccounts } from "../hooks/use-api";
 
@@ -8,10 +9,12 @@ export function MessagesRoute() {
   const { accountId } = useParams({ from: "/accounts/$accountId" });
   const navigate = useNavigate();
   const { data: accountsData } = useEmailAccounts();
-  const { data, isLoading } = useMessages(accountId, true);
+  const { data, isLoading, refetch, isFetching } = useMessages(accountId, true);
   const markRead = useMarkRead();
   const deleteAccount = useDeleteAccount();
   const [copied, setCopied] = useState(false);
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [, copyToClipboard] = useCopyToClipboard();
 
   const accounts = accountsData?.ok ? accountsData.data : [];
   const account = accounts.find((a) => a.id === accountId);
@@ -19,7 +22,7 @@ export function MessagesRoute() {
 
   function handleCopy(e: React.MouseEvent) {
     e.stopPropagation();
-    navigator.clipboard.writeText(email);
+    copyToClipboard(email);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -49,6 +52,15 @@ export function MessagesRoute() {
         </Button>
         <span className="text-xs font-mono text-foreground truncate flex-1">{email}</span>
         <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Refresh"
+          >
+            <RefreshCw className={isFetching ? "animate-spin" : ""} />
+          </Button>
           <Button variant="ghost" size="icon-sm" onClick={handleCopy} title="Copy email">
             {copied ? <Check className="text-green-500" /> : <Copy />}
           </Button>
@@ -85,38 +97,46 @@ export function MessagesRoute() {
               className="w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <div
-                  className={`flex-1 text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-semibold"}`}
-                >
-                  {msg.subject ?? "(no subject)"}
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <div
+                    className={`text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-semibold"}`}
+                  >
+                    {msg.subject ?? "(no subject)"}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {msg.fromAddress} ·{" "}
+                    {new Date(msg.receivedAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 </div>
                 {msg.extractedCode && (
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigator.clipboard.writeText(msg.extractedCode!);
+                      copyToClipboard(msg.extractedCode!);
+                      setCopiedCodeId(msg.id);
+                      setTimeout(() => setCopiedCodeId(null), 2000);
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(msg.extractedCode!);
-                      }
-                    }}
-                    className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-secondary text-foreground hover:bg-secondary/70 cursor-pointer shrink-0"
+                    className="shrink-0 font-mono"
                     title="Copy code"
                   >
-                    {msg.extractedCode}
-                  </span>
+                    {copiedCodeId === msg.id ? (
+                      <>
+                        <Check className="text-green-500" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy />
+                        {msg.extractedCode}
+                      </>
+                    )}
+                  </Button>
                 )}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-1">
-                {msg.fromAddress} ·{" "}
-                {new Date(msg.receivedAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
               </div>
             </button>
           ))}

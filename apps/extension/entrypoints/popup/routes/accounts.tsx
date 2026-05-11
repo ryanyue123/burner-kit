@@ -2,12 +2,13 @@ import { useNavigate } from "@tanstack/react-router";
 import { Header } from "../components/header";
 import { AccountList } from "../components/account-list";
 import { EmptyState } from "../components/empty-state";
-import { useEmailAccounts, useGenerateEmail } from "../hooks/use-api";
+import { useEmailAccounts, useGenerateEmail, useSyncAllAccounts } from "../hooks/use-api";
 
 export function AccountsRoute() {
   const navigate = useNavigate();
-  const { data, isLoading, refetch, isFetching } = useEmailAccounts();
+  const { data, isLoading, isFetching } = useEmailAccounts();
   const generateEmail = useGenerateEmail();
+  const syncAll = useSyncAllAccounts();
 
   const accounts = data?.ok ? data.data : [];
 
@@ -16,8 +17,8 @@ export function AccountsRoute() {
       <Header
         onGenerate={() => generateEmail.mutate()}
         isGenerating={generateEmail.isPending}
-        onRefresh={() => refetch()}
-        isRefreshing={isFetching}
+        onRefresh={() => syncAll.mutate(accounts.map((a) => a.id))}
+        isRefreshing={syncAll.isPending || isFetching}
       />
       {isLoading ? (
         <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">

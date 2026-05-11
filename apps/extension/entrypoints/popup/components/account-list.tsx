@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Copy, Check, Trash2 } from "lucide-react";
 import pluralize from "pluralize-esm";
+import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { Button } from "@/components/ui/button";
 import { useDeleteAccount } from "../hooks/use-api";
 import type { EmailAccount } from "@/lib/api-client";
@@ -14,12 +15,13 @@ export function AccountList({
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const deleteAccount = useDeleteAccount();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   function handleCopy(e: React.MouseEvent, account: EmailAccount) {
     e.stopPropagation();
-    navigator.clipboard.writeText(account.email);
+    copyToClipboard(account.email);
     setCopiedId(account.id);
-    setTimeout(() => setCopiedId(null), 1500);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   return (
@@ -32,9 +34,9 @@ export function AccountList({
             className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-secondary/30 transition-colors"
             onClick={() => onSelect(account.id)}
           >
-            <div className="min-w-0">
+            <div className="flex flex-col gap-1 min-w-0">
               <div className="text-xs font-mono text-foreground truncate">{account.email}</div>
-              <div className="text-[10px] text-muted-foreground mt-0.5">
+              <div className="text-xs text-muted-foreground">
                 {(account.messageCount ?? 0) > 0
                   ? `${pluralize("message", account.messageCount ?? 0, true)}${(account.unreadCount ?? 0) > 0 ? ` · ${account.unreadCount} unread` : ""}`
                   : "No messages"}
@@ -42,7 +44,7 @@ export function AccountList({
             </div>
             <div className="flex items-center gap-1 shrink-0 ml-2">
               {(account.unreadCount ?? 0) > 0 && (
-                <span className="bg-destructive text-destructive-foreground text-[9px] px-1.5 py-0.5 rounded-full font-semibold">
+                <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full font-semibold">
                   {account.unreadCount}
                 </span>
               )}

@@ -4,6 +4,7 @@ import { QueryCache, QueryClient, type QueryKey } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { RouterProvider } from "@tanstack/react-router";
+import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { router } from "./router";
 import { useLatestCode } from "./hooks/use-api";
 import "../../app.css";
@@ -41,15 +42,14 @@ const persister = createSyncStoragePersister({
 
 function AutoCopy() {
   const { data } = useLatestCode();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   useEffect(() => {
     if (!data?.ok) return;
     const ageMs = Date.now() - data.data.receivedAt;
     if (ageMs > 5 * 60 * 1000) return;
-    navigator.clipboard.writeText(data.data.code).catch(() => {
-      // ignore: focus/permission errors
-    });
-  }, [data]);
+    copyToClipboard(data.data.code);
+  }, [data, copyToClipboard]);
 
   return null;
 }
