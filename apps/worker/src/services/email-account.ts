@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { createId } from "@paralleldrive/cuid2";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, gt } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
@@ -39,6 +39,9 @@ export class EmailAccountService extends Context.Tag("EmailAccountService")<
       typeof schema.emailAccount.$inferSelect,
       EmailAccountNotFoundError | DatabaseError
     >;
+    readonly listActiveByUserId: (
+      userId: string,
+    ) => Effect.Effect<ReadonlyArray<typeof schema.emailAccount.$inferSelect>, DatabaseError>;
   }
 >() {}
 
@@ -153,6 +156,19 @@ export const EmailAccountServiceLive = Layer.effect(
           );
           return yield* getAccount(userId, accountId);
         }),
+
+      listActiveByUserId: (userId: string) =>
+        query(() =>
+          db.query.emailAccount.findMany({
+            where: and(
+              eq(schema.emailAccount.userId, userId),
+              or(
+                isNull(schema.emailAccount.expiresAt),
+                gt(schema.emailAccount.expiresAt, new Date()),
+              ),
+            ),
+          }),
+        ),
     };
   }),
 );
