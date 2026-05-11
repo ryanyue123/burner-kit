@@ -80,16 +80,20 @@ export const ExtractionServiceLive = Layer.effect(
             catch: (cause) => new ExtractionError({ reason: `ai.run failed: ${cause}` }),
           });
 
-          let code: string | null = null;
-          try {
-            const raw = aiResponse.choices[0]?.message?.content ?? "";
-            const parsed = JSON.parse(raw) as { code: string | null };
-            if (typeof parsed.code === "string" || parsed.code === null) {
-              code = parsed.code;
-            }
-          } catch (err) {
-            yield* Effect.logError(`failed to parse AI response for ${messageId}: ${err}`);
-          }
+          const code = yield* Effect.try({
+            try: () => {
+              const raw = aiResponse.choices[0]?.message?.content ?? "";
+              const parsed = JSON.parse(raw) as { code: string | null };
+              return typeof parsed.code === "string" || parsed.code === null ? parsed.code : null;
+            },
+            catch: (cause) => cause,
+          }).pipe(
+            Effect.catchAll((cause) =>
+              Effect.logError(`failed to parse AI response for ${messageId}: ${cause}`).pipe(
+                Effect.as<string | null>(null),
+              ),
+            ),
+          );
 
           yield* Effect.log(`extraction for ${messageId}: code=${code ?? "(none)"}`);
           yield* query(() =>
