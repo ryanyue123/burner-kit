@@ -32,3 +32,11 @@ dead_letter_queue = "code-extraction-dlq"
 
 [triggers]
 crons = ["*/1 * * * *"]
+
+[[durable_objects.bindings]]
+name = "USER_CHANNEL"
+class_name = "UserChannel"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UserChannel"]
