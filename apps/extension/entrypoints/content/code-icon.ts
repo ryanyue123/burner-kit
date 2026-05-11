@@ -5,6 +5,7 @@ const ICON_SIZE = 16;
 const NAME_REGEX = /(otp|2fa|verification|confirmation|code|passcode|pin)/i;
 
 const attached = new Map<HTMLInputElement, HTMLDivElement>();
+let codeDetectedSent = false;
 
 function getSignalsText(el: HTMLInputElement): string {
   return [el.name, el.id, el.placeholder, el.getAttribute("aria-label"), el.className]
@@ -156,7 +157,16 @@ export function attachCodeIcons() {
       attached.delete(anchor);
     }
   }
-  for (const target of findCodeTargets()) {
+  const targets = findCodeTargets();
+  if (!codeDetectedSent && targets.length > 0) {
+    codeDetectedSent = true;
+    try {
+      void chrome.runtime.sendMessage({ type: "CODE_DETECTED" });
+    } catch {
+      // background not ready / extension reloading — best-effort
+    }
+  }
+  for (const target of targets) {
     if (attached.has(target.anchor)) continue;
     attached.set(target.anchor, createIcon(target));
   }
