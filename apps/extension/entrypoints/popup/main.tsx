@@ -34,6 +34,19 @@ const queryClient = new QueryClient({
   },
 });
 
+chrome.runtime.onMessage.addListener((msg: unknown) => {
+  if (typeof msg !== "object" || msg === null) return;
+  const m = msg as { type?: string; payload?: { type?: string; accountId?: string } };
+  if (m.type !== "CHANNEL_PUSH") return;
+  const payload = m.payload;
+  if (payload?.type !== "ready" && payload?.type !== "message") return;
+  queryClient.invalidateQueries({ queryKey: ["latest-code"] });
+  if (payload.accountId) {
+    queryClient.invalidateQueries({ queryKey: ["messages", payload.accountId] });
+  }
+  queryClient.invalidateQueries({ queryKey: ["email-accounts"] });
+});
+
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
   key: "burner-kit-query-cache",
