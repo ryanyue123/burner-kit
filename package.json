@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "openlogs --name dev -- concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
+    "dev": "lsof -ti:4318 | xargs kill 2>/dev/null; openlogs --name dev -- concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
     "dev:raw": "concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
