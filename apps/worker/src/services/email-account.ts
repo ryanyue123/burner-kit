@@ -4,6 +4,7 @@ import { eq, and, or, isNull, gt } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
+import { UserChannels } from "./user-channel";
 import { EmailAccountNotFoundError, MailTmError, DatabaseError } from "../errors";
 
 export class EmailAccountService extends Context.Tag("EmailAccountService")<
@@ -50,6 +51,7 @@ export const EmailAccountServiceLive = Layer.effect(
   Effect.gen(function* () {
     const db = yield* Db;
     const mailTm = yield* MailTm;
+    const userChannels = yield* UserChannels;
 
     const getAccount = (userId: string, accountId: string) =>
       query(() =>
@@ -93,6 +95,15 @@ export const EmailAccountServiceLive = Layer.effect(
           };
 
           yield* query(() => db.insert(schema.emailAccount).values(row));
+
+          yield* Effect.tryPromise({
+            try: () => userChannels.get(userChannels.idFromName(userId)).ensureSubscribed(),
+            catch: (cause) => cause,
+          }).pipe(
+            Effect.catchAll((cause) =>
+              Effect.logError(`ensureSubscribed failed for ${userId}: ${cause}`),
+            ),
+          );
 
           return row;
         }),

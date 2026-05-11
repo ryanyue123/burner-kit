@@ -26,6 +26,7 @@ export function makeServicesLayer(env: Env) {
   const emailAccountLayer = EmailAccountServiceLive.pipe(
     Layer.provide(dbLayer),
     Layer.provide(mailTmLayer),
+    Layer.provide(userChannelLayer),
   );
 
   const emailMessageLayer = EmailMessageServiceLive.pipe(
