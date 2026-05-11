@@ -5,16 +5,14 @@ import * as schema from "./db/schema";
 import { BurnerKitApi } from "./api";
 import { createAuth } from "./auth";
 import { HandlersLive } from "./handlers";
-import { makeAuthMiddlewareLive, type AppBindings } from "./middleware";
+import { makeAuthMiddlewareLive } from "./middleware";
 import { Db } from "./services/db";
 import { EmailAccountServiceLive } from "./services/email-account";
 import { EmailMessageServiceLive } from "./services/email-message";
 import { ExtractionServiceLive, CodeQueue, WorkersAi } from "./services/extraction";
 import { MailTmLive } from "./services/mail-tm";
 
-export type { AppBindings };
-
-export function makeServicesLayer(env: AppBindings) {
+export function makeServicesLayer(env: Env) {
   const db = drizzle(env.DB, { schema });
   const auth = createAuth(env);
 
@@ -45,7 +43,7 @@ export function makeServicesLayer(env: AppBindings) {
   return Layer.mergeAll(dbLayer, emailAccountLayer, emailMessageLayer, extractionLayer, authLayer);
 }
 
-export function makeApiLayer(env: AppBindings) {
+export function makeApiLayer(env: Env) {
   const services = makeServicesLayer(env);
   const apiLayer = HttpApiBuilder.api(BurnerKitApi).pipe(
     Layer.provide(HandlersLive),
