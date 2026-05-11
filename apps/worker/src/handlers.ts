@@ -7,7 +7,7 @@ import { EmailMessageService } from "./services/email-message";
 import { Db } from "./services/db";
 import { and, desc, eq, gt, isNull, isNotNull, or } from "drizzle-orm";
 import * as schema from "./db/schema";
-import { EmailMessageNotFoundError } from "./errors";
+import { DatabaseError, EmailMessageNotFoundError } from "./errors";
 
 // ── Mappers ───────────────────────────────────────────────────
 
@@ -138,7 +138,7 @@ export const CodesHandlersLive = HttpApiBuilder.group(BurnerKitApi, "codes", (ha
             )
             .orderBy(desc(schema.emailMessage.receivedAt))
             .limit(1),
-        catch: () => new EmailMessageNotFoundError({ messageId: "no-fresh-code" }),
+        catch: (cause) => new DatabaseError({ message: `codes/latest query failed: ${cause}` }),
       });
 
       const row = rows[0];
