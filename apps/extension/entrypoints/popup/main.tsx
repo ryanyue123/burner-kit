@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryCache, QueryClient, type QueryKey } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { RouterProvider } from "@tanstack/react-router";
@@ -8,7 +8,21 @@ import { router } from "./router";
 import { useLatestCode } from "./hooks/use-api";
 import "../../app.css";
 
+declare module "@tanstack/react-query" {
+  interface Register {
+    queryMeta: { invalidates?: readonly QueryKey[] };
+    mutationMeta: { invalidates?: readonly QueryKey[] };
+  }
+}
+
+const queryCache = new QueryCache({
+  onSuccess: (_data, query) => {
+    query.meta?.invalidates?.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+  },
+});
+
 const queryClient = new QueryClient({
+  queryCache,
   defaultOptions: {
     queries: {
       retry: false,
