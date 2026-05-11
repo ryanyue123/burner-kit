@@ -2,14 +2,13 @@ import { HttpApiBuilder, HttpMiddleware } from "@effect/platform";
 import { Effect, ManagedRuntime } from "effect";
 import { createAuth } from "./auth";
 import { makeApiLayer, makeServicesLayer } from "./runtime";
-import type { AppBindings } from "./middleware";
 import { ExtractionService } from "./services/extraction";
 import { drizzle } from "drizzle-orm/d1";
 import { gt, isNull, or } from "drizzle-orm";
 import * as schema from "./db/schema";
 import { EmailMessageService } from "./services/email-message";
 
-function corsHeaders(env: AppBindings) {
+function corsHeaders(env: Env) {
   return {
     "Access-Control-Allow-Origin": env.EXTENSION_ORIGIN ?? "*",
     "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
@@ -20,7 +19,7 @@ function corsHeaders(env: AppBindings) {
 }
 
 export default {
-  async fetch(request: Request, env: AppBindings): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const cors = corsHeaders(env);
 
     if (request.method === "OPTIONS") {
@@ -49,7 +48,7 @@ export default {
     return res;
   },
 
-  async queue(batch: MessageBatch<{ messageId: string }>, env: AppBindings): Promise<void> {
+  async queue(batch: MessageBatch<{ messageId: string }>, env: Env): Promise<void> {
     const runtime = ManagedRuntime.make(makeServicesLayer(env));
     try {
       await runtime.runPromise(
@@ -79,7 +78,7 @@ export default {
 
   async scheduled(
     _controller: ScheduledController,
-    env: AppBindings,
+    env: Env,
     _ctx: ExecutionContext,
   ): Promise<void> {
     const db = drizzle(env.DB, { schema });

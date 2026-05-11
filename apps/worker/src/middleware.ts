@@ -3,15 +3,6 @@ import { HttpApiMiddleware, HttpServerRequest } from "@effect/platform";
 import { type Auth } from "./auth";
 import { UnauthorizedError } from "./errors";
 
-export type AppBindings = {
-  DB: D1Database;
-  AI: Ai;
-  CODE_EXTRACTION_QUEUE: Queue<{ messageId: string }>;
-  BETTER_AUTH_SECRET: string;
-  BETTER_AUTH_URL: string;
-  EXTENSION_ORIGIN?: string;
-};
-
 export type AuthUser = {
   id: string;
   createdAt: Date;
