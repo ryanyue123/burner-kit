@@ -4,7 +4,7 @@ const ICON_SIZE = 16;
 const SELECTORS = ['input[type="email"]', 'input[autocomplete="email"]'];
 const NAME_REGEX = /email/i;
 
-const processed = new WeakSet<HTMLInputElement>();
+const attached = new Map<HTMLInputElement, HTMLDivElement>();
 
 function isEmailInput(el: HTMLInputElement): boolean {
   if (el.type === "email") return true;
@@ -74,6 +74,11 @@ function createIcon(input: HTMLInputElement): HTMLDivElement {
 
   function position() {
     const rect = input.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      host.style.display = "none";
+      return;
+    }
+    host.style.display = "";
     host.style.top = `${window.scrollY + rect.top + (rect.height - ICON_SIZE) / 2}px`;
     host.style.left = `${window.scrollX + rect.right - ICON_SIZE - 8}px`;
   }
@@ -101,10 +106,15 @@ function createIcon(input: HTMLInputElement): HTMLDivElement {
 }
 
 export function attachIcons() {
+  for (const [input, host] of attached) {
+    if (!document.contains(input)) {
+      host.remove();
+      attached.delete(input);
+    }
+  }
   for (const input of findEmailInputs()) {
-    if (processed.has(input)) continue;
-    processed.add(input);
-    createIcon(input);
+    if (attached.has(input)) continue;
+    attached.set(input, createIcon(input));
   }
 }
 

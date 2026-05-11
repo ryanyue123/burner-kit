@@ -39,6 +39,25 @@ export function useDeleteAccount() {
   });
 }
 
+export function useSyncAllAccounts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (accountIds: string[]) => {
+      const start = Date.now();
+      await Promise.all(
+        accountIds.map((id) =>
+          sendMessage<EmailMessage[]>({ type: "GET_MESSAGES", accountId: id }),
+        ),
+      );
+      const elapsed = Date.now() - start;
+      if (elapsed < 500) {
+        await new Promise((r) => setTimeout(r, 500 - elapsed));
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["email-accounts"] }),
+  });
+}
+
 export function useMarkRead() {
   const queryClient = useQueryClient();
   return useMutation({

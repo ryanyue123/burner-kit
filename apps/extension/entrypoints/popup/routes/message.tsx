@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Copy, Check } from "lucide-react";
+import { ArrowLeft, Copy, Check, RefreshCw } from "lucide-react";
+import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { Button } from "@/components/ui/button";
 import { useMessages } from "../hooks/use-api";
 import DOMPurify from "dompurify";
@@ -10,10 +11,11 @@ export function MessageRoute() {
     from: "/accounts/$accountId/messages/$messageId",
   });
   const navigate = useNavigate();
-  const { data } = useMessages(accountId, true);
+  const { data, refetch, isFetching } = useMessages(accountId, true);
   const messages = data?.ok ? data.data : [];
   const message = messages.find((m) => m.id === messageId);
   const [copied, setCopied] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
 
   if (!message) {
     return (
@@ -31,9 +33,9 @@ export function MessageRoute() {
 
   function handleCopyCode() {
     if (!message?.extractedCode) return;
-    navigator.clipboard.writeText(message.extractedCode);
+    copyToClipboard(message.extractedCode);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -48,13 +50,22 @@ export function MessageRoute() {
         >
           <ArrowLeft />
         </Button>
-        <span className="text-xs text-muted-foreground">Back to messages</span>
+        <span className="text-xs text-muted-foreground flex-1">Back to messages</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          title="Refresh"
+        >
+          <RefreshCw className={isFetching ? "animate-spin" : ""} />
+        </Button>
       </div>
 
       {/* Code panel */}
       {message.extractedCode && (
-        <div className="px-4 py-3 border-b border-border bg-secondary/30">
-          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+        <div className="flex flex-col gap-1 px-4 py-3 border-b border-border bg-secondary/30">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
             Confirmation code
           </div>
           <div className="flex items-center gap-2">
@@ -62,19 +73,28 @@ export function MessageRoute() {
               {message.extractedCode}
             </span>
             <Button variant="outline" size="sm" onClick={handleCopyCode} title="Copy code">
-              {copied ? <Check className="text-green-500" /> : <Copy />}
-              <span className="ml-1 text-xs">{copied ? "Copied" : "Copy"}</span>
+              {copied ? (
+                <>
+                  <Check className="text-green-500" />
+                  <span className="text-xs">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy />
+                  <span className="text-xs">Copy</span>
+                </>
+              )}
             </Button>
           </div>
         </div>
       )}
 
       {/* Metadata */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="flex flex-col gap-1 px-4 py-3 border-b border-border">
         <div className="text-sm font-semibold text-foreground">
           {message.subject ?? "(no subject)"}
         </div>
-        <div className="text-[10px] text-muted-foreground mt-1">
+        <div className="text-xs text-muted-foreground">
           {message.fromAddress} ·{" "}
           {new Date(message.receivedAt).toLocaleTimeString([], {
             hour: "2-digit",

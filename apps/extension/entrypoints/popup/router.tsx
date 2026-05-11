@@ -11,7 +11,7 @@ import { MessageRoute } from "./routes/message";
 
 const rootRoute = createRootRoute({
   component: () => (
-    <main className="min-w-[320px] max-h-[500px] overflow-y-auto bg-background text-foreground">
+    <main className="w-[380px] max-h-[500px] overflow-y-auto bg-background text-foreground">
       <Outlet />
     </main>
   ),

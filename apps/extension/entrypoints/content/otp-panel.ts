@@ -1,21 +1,51 @@
 import type { ApiResult } from "@/lib/api-client";
+import type { OtpTarget } from "./otp-target";
 
 let panelHost: HTMLDivElement | null = null;
 
+const NATIVE_VALUE_SETTER = Object.getOwnPropertyDescriptor(
+  HTMLInputElement.prototype,
+  "value",
+)?.set;
+
 function fillInput(input: HTMLInputElement, value: string) {
-  const nativeSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-  if (nativeSetter) {
-    nativeSetter.call(input, value);
+  input.focus();
+  input.dispatchEvent(
+    new KeyboardEvent("keydown", { key: value || "Unidentified", bubbles: true }),
+  );
+  if (NATIVE_VALUE_SETTER) {
+    NATIVE_VALUE_SETTER.call(input, value);
   } else {
     input.value = value;
   }
-  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(
+    new InputEvent("input", { bubbles: true, inputType: "insertText", data: value }),
+  );
+  input.dispatchEvent(new KeyboardEvent("keyup", { key: value || "Unidentified", bubbles: true }));
   input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function fillTarget(target: OtpTarget, code: string) {
+  if (target.inputs.length === 1) {
+    const input = target.inputs[0]!;
+    fillInput(input, code);
+    input.blur();
+    return;
+  }
+  for (let i = 0; i < target.inputs.length; i++) {
+    fillInput(target.inputs[i]!, code[i] ?? "");
+  }
+  const lastIdx = Math.min(code.length, target.inputs.length) - 1;
+  if (lastIdx >= 0) {
+    const lastInput = target.inputs[lastIdx]!;
+    lastInput.focus();
+    lastInput.blur();
+  }
 }
 
 type LatestCode = { code: string; fromAddress: string; receivedAt: number };
 
-function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, latest: LatestCode | null) {
+function renderPanel(shadow: ShadowRoot, target: OtpTarget, latest: LatestCode | null) {
   shadow.innerHTML = "";
 
   const style = document.createElement("style");
@@ -97,9 +127,9 @@ function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, latest: Latest
 
     const fillBtn = document.createElement("button");
     fillBtn.className = "bk-fill";
-    fillBtn.textContent = "Fill";
+    fillBtn.textContent = "Use code";
     fillBtn.addEventListener("click", () => {
-      fillInput(input, latest.code);
+      fillTarget(target, latest.code);
       hidePanel();
     });
     row.appendChild(fillBtn);
@@ -120,16 +150,19 @@ function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, latest: Latest
   shadow.appendChild(panel);
 }
 
-export async function showOtpPanel(input: HTMLInputElement, iconHost: HTMLDivElement) {
+export async function showOtpPanel(target: OtpTarget, iconHost: HTMLDivElement) {
   hidePanel();
+
+  if (!document.contains(target.anchor)) return;
 
   panelHost = document.createElement("div");
   panelHost.style.position = "absolute";
   panelHost.style.zIndex = "2147483647";
 
-  const rect = input.getBoundingClientRect();
-  panelHost.style.top = `${window.scrollY + rect.bottom + 4}px`;
-  panelHost.style.left = `${window.scrollX + rect.left}px`;
+  const firstRect = target.inputs[0]!.getBoundingClientRect();
+  const lastRect = target.anchor.getBoundingClientRect();
+  panelHost.style.top = `${window.scrollY + Math.max(firstRect.bottom, lastRect.bottom) + 4}px`;
+  panelHost.style.left = `${window.scrollX + firstRect.left}px`;
 
   const shadow = panelHost.attachShadow({ mode: "closed" });
 
@@ -138,7 +171,7 @@ export async function showOtpPanel(input: HTMLInputElement, iconHost: HTMLDivEle
   });
   const latest = result.ok ? result.data : null;
 
-  renderPanel(shadow, input, latest);
+  renderPanel(shadow, target, latest);
 
   document.body.appendChild(panelHost);
 
