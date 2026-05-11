@@ -1,4 +1,4 @@
-import { HttpApiBuilder } from "@effect/platform";
+import { HttpApiBuilder, HttpMiddleware } from "@effect/platform";
 import { Effect, ManagedRuntime } from "effect";
 import { createAuth } from "./auth";
 import { makeApiLayer, makeServicesLayer } from "./runtime";
@@ -38,7 +38,9 @@ export default {
       return res;
     }
 
-    const { handler } = HttpApiBuilder.toWebHandler(makeApiLayer(env));
+    const { handler } = HttpApiBuilder.toWebHandler(makeApiLayer(env), {
+      middleware: HttpMiddleware.logger,
+    });
     const res = await handler(request);
 
     for (const [k, v] of Object.entries(cors)) {

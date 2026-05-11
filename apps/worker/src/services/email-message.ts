@@ -49,11 +49,10 @@ export const EmailMessageServiceLive = Layer.effect(
     const codeQueue = yield* CodeQueue;
 
     const enqueueExtraction = (messageId: string) =>
-      Effect.tryPromise({
-        try: () => codeQueue.send({ messageId }),
-        catch: (cause) => new DatabaseError({ message: `queue.send failed: ${cause}` }),
-      }).pipe(
-        Effect.tapError((e) => Effect.logError(String(e))),
+      Effect.tryPromise(() => codeQueue.send({ messageId })).pipe(
+        Effect.tapErrorCause((cause) =>
+          Effect.logError("queue.send failed", cause).pipe(Effect.annotateLogs({ messageId })),
+        ),
         Effect.ignore,
       );
 
