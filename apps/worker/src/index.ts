@@ -50,21 +50,25 @@ export default {
   async queue(batch: MessageBatch<{ messageId: string }>, env: AppBindings): Promise<void> {
     const runtime = ManagedRuntime.make(makeServicesLayer(env));
     try {
-      await Promise.all(
-        batch.messages.map(async (msg) => {
-          try {
-            await runtime.runPromise(
-              Effect.gen(function* () {
-                const svc = yield* ExtractionService;
-                yield* svc.extractForMessage(msg.body.messageId);
+      await runtime.runPromise(
+        Effect.forEach(
+          batch.messages,
+          (msg) =>
+            Effect.gen(function* () {
+              const svc = yield* ExtractionService;
+              yield* svc.extractForMessage(msg.body.messageId);
+            }).pipe(
+              Effect.matchEffect({
+                onSuccess: () => Effect.sync(() => msg.ack()),
+                onFailure: (err) =>
+                  Effect.sync(() => {
+                    console.error(`extraction failed for ${msg.body.messageId}:`, err);
+                    msg.retry();
+                  }),
               }),
-            );
-            msg.ack();
-          } catch (err) {
-            console.error(`extraction failed for ${msg.body.messageId}:`, err);
-            msg.retry();
-          }
-        }),
+            ),
+          { concurrency: "unbounded" },
+        ),
       );
     } finally {
       await runtime.dispose();
@@ -87,16 +91,19 @@ export default {
 
     const runtime = ManagedRuntime.make(makeServicesLayer(env));
     try {
-      await Promise.all(
-        activeAccounts.map((account) =>
-          runtime
-            .runPromise(
-              Effect.gen(function* () {
-                const svc = yield* EmailMessageService;
-                yield* svc.syncAccountInternal(account);
-              }),
-            )
-            .catch((err) => console.error(`[cron] sync failed for ${account.email}:`, err)),
+      await runtime.runPromise(
+        Effect.forEach(
+          activeAccounts,
+          (account) =>
+            Effect.gen(function* () {
+              const svc = yield* EmailMessageService;
+              yield* svc.syncAccountInternal(account);
+            }).pipe(
+              Effect.catchAll((err) =>
+                Effect.sync(() => console.error(`[cron] sync failed for ${account.email}:`, err)),
+              ),
+            ),
+          { concurrency: "unbounded" },
         ),
       );
     } finally {
