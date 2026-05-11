@@ -1,0 +1,1 @@
+CREATE INDEX `email_message_account_received_idx` ON `email_message` (`email_account_id`,`received_at`);

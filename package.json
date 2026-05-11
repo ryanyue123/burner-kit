@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
+    "dev": "openlogs --name dev -- concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
+    "dev:raw": "concurrently -n worker,extension -c blue,magenta \"pnpm --filter worker dev\" \"pnpm --filter extension dev\"",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "oxlint",
@@ -15,6 +16,7 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "lefthook": "^2.1.5",
+    "openlogs": "^0.0.2",
     "oxfmt": "^0.43.0",
     "oxlint": "^1.58.0",
     "typescript": "^5.6.0"

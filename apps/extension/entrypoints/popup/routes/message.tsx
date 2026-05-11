@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMessages } from "../hooks/use-api";
 import DOMPurify from "dompurify";
@@ -12,6 +13,7 @@ export function MessageRoute() {
   const { data } = useMessages(accountId, true);
   const messages = data?.ok ? data.data : [];
   const message = messages.find((m) => m.id === messageId);
+  const [copied, setCopied] = useState(false);
 
   if (!message) {
     return (
@@ -27,6 +29,13 @@ export function MessageRoute() {
     ? `<!DOCTYPE html><html><head><base target="_blank"><meta http-equiv="Content-Security-Policy" content="script-src 'none';"><style>body{margin:0;padding:12px;font-family:system-ui,sans-serif;font-size:14px;color:#333;background:#fff;}</style></head><body>${sanitizedHtml}</body></html>`
     : null;
 
+  function handleCopyCode() {
+    if (!message?.extractedCode) return;
+    navigator.clipboard.writeText(message.extractedCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
     <div className="flex flex-col max-h-[500px]">
       {/* Header */}
@@ -41,6 +50,24 @@ export function MessageRoute() {
         </Button>
         <span className="text-xs text-muted-foreground">Back to messages</span>
       </div>
+
+      {/* Code panel */}
+      {message.extractedCode && (
+        <div className="px-4 py-3 border-b border-border bg-secondary/30">
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+            Confirmation code
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-mono font-semibold tracking-wider text-foreground flex-1">
+              {message.extractedCode}
+            </span>
+            <Button variant="outline" size="sm" onClick={handleCopyCode} title="Copy code">
+              {copied ? <Check className="text-green-500" /> : <Copy />}
+              <span className="ml-1 text-xs">{copied ? "Copied" : "Copy"}</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="px-4 py-3 border-b border-border">

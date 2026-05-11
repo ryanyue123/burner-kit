@@ -41,6 +41,7 @@ type MessageMap = {
     expiresAt?: number | null;
   };
   GET_ME: { type: "GET_ME" };
+  GET_LATEST_CODE: { type: "GET_LATEST_CODE" };
 };
 
 type Message = MessageMap[keyof MessageMap];
@@ -107,6 +108,13 @@ export default defineBackground(() => {
             method: "PATCH",
             body: JSON.stringify(body),
           });
+          sendResponse(res);
+          break;
+        }
+        case "GET_LATEST_CODE": {
+          const res = await apiRequest<{ code: string; fromAddress: string; receivedAt: number }>(
+            "/api/codes/latest",
+          );
           sendResponse(res);
           break;
         }

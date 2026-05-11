@@ -5,6 +5,8 @@ import { UnauthorizedError } from "./errors";
 
 export type AppBindings = {
   DB: D1Database;
+  AI: Ai;
+  CODE_EXTRACTION_QUEUE: Queue<{ messageId: string }>;
   BETTER_AUTH_SECRET: string;
   BETTER_AUTH_URL: string;
   EXTENSION_ORIGIN?: string;

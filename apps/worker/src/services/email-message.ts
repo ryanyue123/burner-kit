@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
+import { CodeQueue } from "./extraction";
 import { DatabaseError, EmailAccountNotFoundError, EmailMessageNotFoundError } from "../errors";
 import { EmailAccountService } from "./email-account";
 
@@ -33,6 +34,9 @@ export class EmailMessageService extends Context.Tag("EmailMessageService")<
       typeof schema.emailMessage.$inferSelect,
       EmailAccountNotFoundError | EmailMessageNotFoundError | DatabaseError
     >;
+    readonly syncAccountInternal: (
+      account: typeof schema.emailAccount.$inferSelect,
+    ) => Effect.Effect<void, DatabaseError>;
   }
 >() {}
 
@@ -42,6 +46,16 @@ export const EmailMessageServiceLive = Layer.effect(
     const db = yield* Db;
     const mailTm = yield* MailTm;
     const emailAccountSvc = yield* EmailAccountService;
+    const codeQueue = yield* CodeQueue;
+
+    const enqueueExtraction = (messageId: string) =>
+      Effect.tryPromise({
+        try: () => codeQueue.send({ messageId }),
+        catch: (cause) => new DatabaseError({ message: `queue.send failed: ${cause}` }),
+      }).pipe(
+        Effect.tapError((e) => Effect.logError(String(e))),
+        Effect.ignore,
+      );
 
     return {
       syncAndList: (userId: string, accountId: string) =>
@@ -50,7 +64,6 @@ export const EmailMessageServiceLive = Layer.effect(
 
           yield* Effect.log(`fetching messages for ${account.email} (account=${accountId})`);
 
-          // Fetch from mail.tm
           const mailTmMessages = yield* mailTm
             .getMessages(account.providerToken)
             .pipe(
@@ -64,7 +77,6 @@ export const EmailMessageServiceLive = Layer.effect(
           const remote = mailTmMessages["hydra:member"];
           yield* Effect.log(`mail.tm returned ${remote.length} message(s) for ${account.email}`);
 
-          // Upsert new messages into D1
           let inserted = 0;
           for (const msg of remote) {
             const existing = yield* query(() =>
@@ -73,7 +85,6 @@ export const EmailMessageServiceLive = Layer.effect(
               }),
             );
 
-            // Fetch full message content (list endpoint omits text/html body)
             const needsContent =
               !existing || (existing.textContent === null && existing.htmlContent === null);
 
@@ -105,8 +116,8 @@ export const EmailMessageServiceLive = Layer.effect(
                   }),
                 );
                 inserted++;
+                yield* enqueueExtraction(msg.id);
               } else {
-                // Backfill content for previously synced messages
                 yield* query(() =>
                   db
                     .update(schema.emailMessage)
@@ -114,10 +125,12 @@ export const EmailMessageServiceLive = Layer.effect(
                       subject: fullMsg.subject ?? null,
                       textContent: fullMsg.text ?? null,
                       htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                      extractionStatus: "pending",
                     })
                     .where(eq(schema.emailMessage.id, msg.id)),
                 );
                 yield* Effect.log(`backfilled content for message ${msg.id}`);
+                yield* enqueueExtraction(msg.id);
               }
             }
           }
@@ -126,7 +139,6 @@ export const EmailMessageServiceLive = Layer.effect(
             `inserted ${inserted} new message(s), ${remote.length - inserted} already cached`,
           );
 
-          // Return all from D1
           const messages = yield* query(() =>
             db.query.emailMessage.findMany({
               where: eq(schema.emailMessage.emailAccountId, accountId),
@@ -180,6 +192,75 @@ export const EmailMessageServiceLive = Layer.effect(
           );
 
           return { ...message, isRead };
+        }),
+
+      syncAccountInternal: (account: typeof schema.emailAccount.$inferSelect) =>
+        Effect.gen(function* () {
+          yield* Effect.log(`[cron] syncing ${account.email}`);
+
+          const mailTmMessages = yield* mailTm
+            .getMessages(account.providerToken)
+            .pipe(
+              Effect.catchAll((e) =>
+                Effect.logError(`[cron] mail.tm list failed for ${account.email}: ${e}`).pipe(
+                  Effect.map(() => ({ "hydra:member": [] as never[] })),
+                ),
+              ),
+            );
+
+          const remote = mailTmMessages["hydra:member"];
+
+          for (const msg of remote) {
+            const existing = yield* query(() =>
+              db.query.emailMessage.findFirst({
+                where: eq(schema.emailMessage.id, msg.id),
+              }),
+            );
+
+            const needsContent =
+              !existing || (existing.textContent === null && existing.htmlContent === null);
+
+            if (!needsContent) continue;
+
+            const fullMsg = yield* mailTm
+              .getMessage(account.providerToken, msg.id)
+              .pipe(
+                Effect.catchAll((e) =>
+                  Effect.logError(`[cron] failed to fetch ${msg.id}: ${e}`).pipe(
+                    Effect.map(() => msg),
+                  ),
+                ),
+              );
+
+            if (!existing) {
+              yield* query(() =>
+                db.insert(schema.emailMessage).values({
+                  id: msg.id,
+                  emailAccountId: account.id,
+                  fromAddress: fullMsg.from.address,
+                  subject: fullMsg.subject ?? null,
+                  textContent: fullMsg.text ?? null,
+                  htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                  receivedAt: new Date(fullMsg.createdAt),
+                  isRead: fullMsg.seen,
+                }),
+              );
+              yield* enqueueExtraction(msg.id);
+            } else {
+              yield* query(() =>
+                db
+                  .update(schema.emailMessage)
+                  .set({
+                    subject: fullMsg.subject ?? null,
+                    textContent: fullMsg.text ?? null,
+                    htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                    extractionStatus: "pending",
+                  })
+                  .where(eq(schema.emailMessage.id, msg.id)),
+              );
+              yield* enqueueExtraction(msg.id);
+            }
+          }
         }),
     };
   }),

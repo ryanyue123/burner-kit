@@ -1,4 +1,4 @@
-import type { EmailAccount, ApiResult } from "@/lib/api-client";
+import type { ApiResult } from "@/lib/api-client";
 
 let panelHost: HTMLDivElement | null = null;
 
@@ -13,13 +13,15 @@ function fillInput(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, accounts: EmailAccount[]) {
+type LatestCode = { code: string; fromAddress: string; receivedAt: number };
+
+function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, latest: LatestCode | null) {
   shadow.innerHTML = "";
 
   const style = document.createElement("style");
   style.textContent = `
     .bk-panel {
-      width: 320px;
+      width: 280px;
       background: #111113;
       border: 1px solid #232329;
       border-radius: 8px;
@@ -43,88 +45,82 @@ function renderPanel(shadow: ShadowRoot, input: HTMLInputElement, accounts: Emai
       font-size: 10px; font-weight: 700; color: white;
     }
     .bk-title { font-size: 12px; font-weight: 600; }
-    .bk-generate {
-      width: 100%;
-      padding: 8px;
-      background: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-    .bk-generate:hover { background: #2563eb; }
-    .bk-generate:disabled { opacity: 0.6; cursor: wait; }
-    .bk-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b6b76; margin-bottom: 4px; }
-    .bk-item {
-      padding: 6px 8px;
+    .bk-code-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
       background: #18181b;
       border: 1px solid #232329;
       border-radius: 6px;
-      margin-bottom: 4px;
-      cursor: pointer;
-      font-size: 11px;
+    }
+    .bk-code {
       font-family: monospace;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      flex: 1;
       color: #ededef;
     }
-    .bk-item:hover { border-color: #3b82f6; }
+    .bk-fill {
+      padding: 6px 10px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .bk-fill:hover { background: #2563eb; }
+    .bk-source { font-size: 10px; color: #6b6b76; margin-top: 6px; }
+    .bk-empty { font-size: 11px; color: #6b6b76; padding: 4px 0; }
   `;
   shadow.appendChild(style);
 
   const panel = document.createElement("div");
   panel.className = "bk-panel";
 
-  // Header
   const header = document.createElement("div");
   header.className = "bk-header";
   header.innerHTML = `<div class="bk-logo">B</div><span class="bk-title">Burner Kit</span>`;
   panel.appendChild(header);
 
-  // Generate button
-  const btn = document.createElement("button");
-  btn.className = "bk-generate";
-  btn.textContent = "Generate new burner email";
-  btn.addEventListener("click", async () => {
-    btn.disabled = true;
-    btn.textContent = "Generating...";
-    const result: ApiResult<EmailAccount> = await chrome.runtime.sendMessage({
-      type: "GENERATE_EMAIL",
-    });
-    if (result.ok) {
-      fillInput(input, result.data.email);
+  if (latest) {
+    const row = document.createElement("div");
+    row.className = "bk-code-row";
+
+    const codeSpan = document.createElement("span");
+    codeSpan.className = "bk-code";
+    codeSpan.textContent = latest.code;
+    row.appendChild(codeSpan);
+
+    const fillBtn = document.createElement("button");
+    fillBtn.className = "bk-fill";
+    fillBtn.textContent = "Fill";
+    fillBtn.addEventListener("click", () => {
+      fillInput(input, latest.code);
       hidePanel();
-    } else {
-      btn.textContent = "Failed — try again";
-      btn.disabled = false;
-    }
-  });
-  panel.appendChild(btn);
+    });
+    row.appendChild(fillBtn);
 
-  // Recent accounts
-  if (accounts.length > 0) {
-    const label = document.createElement("div");
-    label.className = "bk-label";
-    label.textContent = "Recent";
-    panel.appendChild(label);
+    panel.appendChild(row);
 
-    for (const account of accounts.slice(0, 5)) {
-      const item = document.createElement("div");
-      item.className = "bk-item";
-      item.textContent = account.email;
-      item.addEventListener("click", () => {
-        fillInput(input, account.email);
-        hidePanel();
-      });
-      panel.appendChild(item);
-    }
+    const source = document.createElement("div");
+    source.className = "bk-source";
+    source.textContent = `from ${latest.fromAddress}`;
+    panel.appendChild(source);
+  } else {
+    const empty = document.createElement("div");
+    empty.className = "bk-empty";
+    empty.textContent = "No recent code found.";
+    panel.appendChild(empty);
   }
 
   shadow.appendChild(panel);
 }
 
-export async function showPanel(input: HTMLInputElement, iconHost: HTMLDivElement) {
+export async function showOtpPanel(input: HTMLInputElement, iconHost: HTMLDivElement) {
   hidePanel();
 
   panelHost = document.createElement("div");
@@ -137,17 +133,15 @@ export async function showPanel(input: HTMLInputElement, iconHost: HTMLDivElemen
 
   const shadow = panelHost.attachShadow({ mode: "closed" });
 
-  // Fetch accounts
-  const result: ApiResult<EmailAccount[]> = await chrome.runtime.sendMessage({
-    type: "GET_EMAIL_ACCOUNTS",
+  const result: ApiResult<LatestCode> = await chrome.runtime.sendMessage({
+    type: "GET_LATEST_CODE",
   });
-  const accounts = result.ok ? result.data : [];
+  const latest = result.ok ? result.data : null;
 
-  renderPanel(shadow, input, accounts);
+  renderPanel(shadow, input, latest);
 
   document.body.appendChild(panelHost);
 
-  // Close on outside click
   function onClickOutside(e: MouseEvent) {
     if (panelHost && !panelHost.contains(e.target as Node) && e.target !== iconHost) {
       hidePanel();
@@ -157,7 +151,6 @@ export async function showPanel(input: HTMLInputElement, iconHost: HTMLDivElemen
   }
   setTimeout(() => document.addEventListener("click", onClickOutside), 0);
 
-  // Close on Escape
   function onKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
       hidePanel();
