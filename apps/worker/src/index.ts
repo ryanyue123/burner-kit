@@ -39,6 +39,24 @@ export default {
       return res;
     }
 
+    if (url.pathname === "/api/channel/connect") {
+      const auth = createAuth(env);
+      const session = await auth.api.getSession({ headers: request.headers });
+      if (!session?.user) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+      if (request.headers.get("Upgrade") !== "websocket") {
+        return new Response("expected websocket", { status: 426, headers: cors });
+      }
+      const id = env.USER_CHANNEL.idFromName(session.user.id);
+      const stub = env.USER_CHANNEL.get(id);
+      const forwarded = new Request(request, {
+        headers: new Headers(request.headers),
+      });
+      forwarded.headers.set("X-User-Id", session.user.id);
+      return stub.fetch(forwarded);
+    }
+
     const { handler } = HttpApiBuilder.toWebHandler(makeApiLayer(env), {
       middleware: HttpMiddleware.logger,
     });
