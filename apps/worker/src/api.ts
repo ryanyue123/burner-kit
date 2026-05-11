@@ -67,7 +67,7 @@ export const MarkReadBody = Schema.Struct({
 
 // ── Endpoint groups ───────────────────────────────────────────
 
-export class EmailAccountsGroup extends HttpApiGroup.make("emailAccounts")
+export class EmailAccountsRoutes extends HttpApiGroup.make("emailAccounts")
   .add(
     HttpApiEndpoint.post("create", "/")
       .addSuccess(AccountResponse, { status: 201 })
@@ -115,7 +115,7 @@ export class EmailAccountsGroup extends HttpApiGroup.make("emailAccounts")
   .prefix("/api/email-accounts")
   .middleware(AuthMiddleware) {}
 
-export class CodesGroup extends HttpApiGroup.make("codes")
+export class CodesRoutes extends HttpApiGroup.make("codes")
   .add(
     HttpApiEndpoint.get("latest", "/latest")
       .addSuccess(LatestCodeResponse)
@@ -125,11 +125,11 @@ export class CodesGroup extends HttpApiGroup.make("codes")
   .prefix("/api/codes")
   .middleware(AuthMiddleware) {}
 
-export class MiscGroup extends HttpApiGroup.make("misc", { topLevel: true })
+export class MiscRoutes extends HttpApiGroup.make("misc", { topLevel: true })
   .add(HttpApiEndpoint.get("health", "/").addSuccess(HealthResponse))
   .add(HttpApiEndpoint.get("me", "/api/me").addSuccess(MeResponse).middleware(AuthMiddleware)) {}
 
 export class BurnerKitApi extends HttpApi.make("burnerKit")
-  .add(EmailAccountsGroup)
-  .add(CodesGroup)
-  .add(MiscGroup) {}
+  .add(EmailAccountsRoutes)
+  .add(CodesRoutes)
+  .add(MiscRoutes) {}

@@ -20,15 +20,15 @@ EXTENSION_ORIGIN = "chrome-extension://gjkdmhmhmoahlkpcmkedpdjpahjkciip"
 binding = "AI"
 
 [[queues.producers]]
-queue = "otp-extraction"
-binding = "OTP_EXTRACTION_QUEUE"
+queue = "code-extraction"
+binding = "CODE_EXTRACTION_QUEUE"
 
 [[queues.consumers]]
-queue = "otp-extraction"
+queue = "code-extraction"
 max_batch_size = 10
 max_batch_timeout = 5
 max_retries = 3
-dead_letter_queue = "otp-extraction-dlq"
+dead_letter_queue = "code-extraction-dlq"
 
 [triggers]
 crons = ["*/1 * * * *"]

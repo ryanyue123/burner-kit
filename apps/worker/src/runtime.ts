@@ -9,7 +9,7 @@ import { makeAuthMiddlewareLive, type AppBindings } from "./middleware";
 import { Db } from "./services/db";
 import { EmailAccountServiceLive } from "./services/email-account";
 import { EmailMessageServiceLive } from "./services/email-message";
-import { ExtractionServiceLive, OtpQueue, WorkersAi } from "./services/extraction";
+import { ExtractionServiceLive, CodeQueue, WorkersAi } from "./services/extraction";
 import { MailTmLive } from "./services/mail-tm";
 
 export type { AppBindings };
@@ -19,7 +19,7 @@ export function makeServicesLayer(env: AppBindings) {
   const auth = createAuth(env);
 
   const dbLayer = Layer.succeed(Db, db);
-  const otpQueueLayer = Layer.succeed(OtpQueue, env.OTP_EXTRACTION_QUEUE);
+  const codeQueueLayer = Layer.succeed(CodeQueue, env.CODE_EXTRACTION_QUEUE);
   const aiLayer = Layer.succeed(WorkersAi, env.AI);
   const mailTmLayer = MailTmLive.pipe(Layer.provide(FetchHttpClient.layer));
 
@@ -32,7 +32,7 @@ export function makeServicesLayer(env: AppBindings) {
     Layer.provide(dbLayer),
     Layer.provide(emailAccountLayer),
     Layer.provide(mailTmLayer),
-    Layer.provide(otpQueueLayer),
+    Layer.provide(codeQueueLayer),
   );
 
   const extractionLayer = ExtractionServiceLive.pipe(

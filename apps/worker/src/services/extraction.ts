@@ -4,7 +4,10 @@ import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { DatabaseError, EmailMessageNotFoundError, ExtractionError } from "../errors";
 
-export class OtpQueue extends Context.Tag("OtpQueue")<OtpQueue, Queue<{ messageId: string }>>() {}
+export class CodeQueue extends Context.Tag("CodeQueue")<
+  CodeQueue,
+  Queue<{ messageId: string }>
+>() {}
 
 export class WorkersAi extends Context.Tag("WorkersAi")<WorkersAi, Ai>() {}
 

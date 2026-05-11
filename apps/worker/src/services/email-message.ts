@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
-import { OtpQueue } from "./extraction";
+import { CodeQueue } from "./extraction";
 import { DatabaseError, EmailAccountNotFoundError, EmailMessageNotFoundError } from "../errors";
 import { EmailAccountService } from "./email-account";
 
@@ -46,11 +46,11 @@ export const EmailMessageServiceLive = Layer.effect(
     const db = yield* Db;
     const mailTm = yield* MailTm;
     const emailAccountSvc = yield* EmailAccountService;
-    const otpQueue = yield* OtpQueue;
+    const codeQueue = yield* CodeQueue;
 
     const enqueueExtraction = (messageId: string) =>
       Effect.tryPromise({
-        try: () => otpQueue.send({ messageId }),
+        try: () => codeQueue.send({ messageId }),
         catch: (cause) => new DatabaseError({ message: `queue.send failed: ${cause}` }),
       }).pipe(
         Effect.tapError((e) => Effect.logError(String(e))),
