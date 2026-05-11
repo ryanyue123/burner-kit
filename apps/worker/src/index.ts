@@ -8,6 +8,8 @@ import { gt, isNull, or } from "drizzle-orm";
 import * as schema from "./db/schema";
 import { EmailMessageService } from "./services/email-message";
 
+export { UserChannel } from "./durable-objects/user-channel";
+
 function corsHeaders(env: Env) {
   return {
     "Access-Control-Allow-Origin": env.EXTENSION_ORIGIN ?? "*",
