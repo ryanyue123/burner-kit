@@ -17,6 +17,9 @@ export function useMessages(accountId: string, enabled: boolean) {
     queryKey: ["messages", accountId],
     queryFn: () => sendMessage<EmailMessage[]>({ type: "GET_MESSAGES", accountId }),
     enabled,
+    // GET_MESSAGES syncs mail.tm into D1 as a side effect, which changes
+    // messageCount/unreadCount on the accounts list. Refresh that cache.
+    meta: { invalidates: [["email-accounts"]] },
   });
 }
 
