@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/client";
 import { anonymousClient } from "better-auth/client/plugins";
 import { apiRequest, type EmailAccount, type EmailMessage } from "@/lib/api-client";
+import { UserChannelClient, type ChannelOutbound } from "@/lib/user-channel-client";
 
 const API_URL = import.meta.env.WXT_API_URL as string;
 
@@ -42,6 +43,7 @@ type MessageMap = {
   };
   GET_ME: { type: "GET_ME" };
   GET_LATEST_CODE: { type: "GET_LATEST_CODE" };
+  CODE_DETECTED: { type: "CODE_DETECTED" };
 };
 
 type Message = MessageMap[keyof MessageMap];
@@ -49,7 +51,28 @@ type Message = MessageMap[keyof MessageMap];
 export default defineBackground(() => {
   console.log("burner-kit background started");
 
-  ensureAnonymousSession().catch((err) => console.error(err));
+  let channel: UserChannelClient | null = null;
+
+  function startChannel(): void {
+    if (channel) return;
+    const wsUrl = API_URL.replace(/^http/, "ws") + "/api/channel/connect";
+    channel = new UserChannelClient({
+      url: wsUrl,
+      onMessage: (msg: ChannelOutbound) => {
+        // Broadcast every push to popup + content scripts. Receivers filter
+        // by `type` themselves.
+        chrome.runtime.sendMessage({ type: "CHANNEL_PUSH", payload: msg }).catch(() => {
+          // No receiver listening — that's fine.
+        });
+      },
+      onStateChange: (state) => console.log(`[user-channel] ${state}`),
+    });
+    channel.connect();
+  }
+
+  ensureAnonymousSession()
+    .then(() => startChannel())
+    .catch((err) => console.error(err));
 
   chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
     (async () => {
@@ -66,6 +89,7 @@ export default defineBackground(() => {
         case "GENERATE_EMAIL": {
           const res = await apiRequest<EmailAccount>("/api/email-accounts", { method: "POST" });
           sendResponse(res);
+          if (res.ok) channel?.subscribe();
           break;
         }
         case "GET_EMAIL_ACCOUNTS": {
@@ -116,6 +140,11 @@ export default defineBackground(() => {
             "/api/codes/latest",
           );
           sendResponse(res);
+          break;
+        }
+        case "CODE_DETECTED": {
+          channel?.subscribe();
+          sendResponse({ ok: true });
           break;
         }
       }
