@@ -1,6 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import { Schema } from "effect";
 import { MercureSubscriber } from "../services/mail-tm-mercure";
+import { Effect, ManagedRuntime } from "effect";
+import type { Layer } from "effect";
+import * as schema from "../db/schema";
+import { makeServicesLayer } from "../runtime";
+import { EmailAccountService } from "../services/email-account";
+import { EmailMessageService } from "../services/email-message";
 
 // ---------- Wire protocol ----------
 export const ChannelOutbound = Schema.Union(
@@ -37,6 +43,10 @@ export class UserChannel extends DurableObject<Env> {
   /** In-memory only — wiped on hibernation. Rebuilt on activate. */
   private subscribers = new Map<string, MercureSubscriber>();
   private active = false;
+  private runtime: ManagedRuntime.ManagedRuntime<
+    Layer.Layer.Success<ReturnType<typeof makeServicesLayer>>,
+    never
+  > | null = null;
 
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade") !== "websocket") {
@@ -120,19 +130,73 @@ export class UserChannel extends DurableObject<Env> {
   // State transitions
   // ------------------------------------------------------------------
 
-  private async activate(_userId: string): Promise<void> {
+  private async activate(userId: string): Promise<void> {
     if (this.active) return;
     this.active = true;
-    // Mercure subscription setup arrives in Task 5. For now this is a no-op
-    // beyond flipping the flag.
+    this.runtime ??= ManagedRuntime.make(makeServicesLayer(this.env));
+
+    const accounts = await this.runtime.runPromise(
+      Effect.gen(function* () {
+        const svc = yield* EmailAccountService;
+        return yield* svc.listActiveByUserId(userId);
+      }).pipe(
+        Effect.catchAll((cause) =>
+          Effect.logError(`[user-channel] listActive failed: ${cause}`).pipe(
+            Effect.as<ReadonlyArray<typeof schema.emailAccount.$inferSelect>>([]),
+          ),
+        ),
+      ),
+    );
+
+    for (const account of accounts) {
+      if (this.subscribers.has(account.id)) continue;
+      const sub = new MercureSubscriber({
+        accountId: account.providerAccountId,
+        token: account.providerToken,
+        onEvent: (event) => this.handleMercureEvent(account, event),
+        onError: (err) => {
+          console.error(`[user-channel] mercure error for ${account.email}:`, err);
+        },
+      });
+      sub.open();
+      this.subscribers.set(account.id, sub);
+    }
   }
 
   private async deactivate(): Promise<void> {
     this.active = false;
     for (const sub of this.subscribers.values()) sub.close();
     this.subscribers.clear();
+    if (this.runtime) {
+      await this.runtime.dispose();
+      this.runtime = null;
+    }
     // We do NOT close the WebSocket here — clients stay attached and
     // hibernate. The next heartbeat will re-activate via the inbound handler.
+  }
+
+  private async handleMercureEvent(
+    account: typeof schema.emailAccount.$inferSelect,
+    event: import("../services/mail-tm-mercure").MercureEvent,
+  ): Promise<void> {
+    if (event.kind !== "arrive") return;
+    this.broadcast({
+      type: "message",
+      accountId: account.id,
+      messageId: event.messageId,
+    });
+    const runtime = this.runtime;
+    if (!runtime) return;
+    await runtime.runPromise(
+      Effect.gen(function* () {
+        const svc = yield* EmailMessageService;
+        yield* svc.syncAccountInternal(account);
+      }).pipe(
+        Effect.catchAll((cause) =>
+          Effect.logError(`[user-channel] sync failed for ${account.email}: ${cause}`),
+        ),
+      ),
+    );
   }
 
   // ------------------------------------------------------------------
