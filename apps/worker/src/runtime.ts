@@ -20,7 +20,7 @@ export function makeServicesLayer(env: Env) {
   const dbLayer = Layer.succeed(Db, db);
   const codeQueueLayer = Layer.succeed(CodeQueue, env.CODE_EXTRACTION_QUEUE);
   const aiLayer = Layer.succeed(WorkersAi, env.AI);
-  const _userChannelLayer = Layer.succeed(UserChannels, env.USER_CHANNEL);
+  const userChannelLayer = Layer.succeed(UserChannels, env.USER_CHANNEL);
   const mailTmLayer = MailTmLive.pipe(Layer.provide(FetchHttpClient.layer));
 
   const emailAccountLayer = EmailAccountServiceLive.pipe(
@@ -38,6 +38,7 @@ export function makeServicesLayer(env: Env) {
   const extractionLayer = ExtractionServiceLive.pipe(
     Layer.provide(dbLayer),
     Layer.provide(aiLayer),
+    Layer.provide(userChannelLayer),
   );
 
   const authLayer = makeAuthMiddlewareLive(auth);

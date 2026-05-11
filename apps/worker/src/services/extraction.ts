@@ -2,6 +2,7 @@ import { Context, Effect, Layer } from "effect";
 import { eq } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
+import { UserChannels } from "./user-channel";
 import { DatabaseError, EmailMessageNotFoundError, ExtractionError } from "../errors";
 
 export class CodeQueue extends Context.Tag("CodeQueue")<
@@ -49,6 +50,7 @@ export const ExtractionServiceLive = Layer.effect(
   Effect.gen(function* () {
     const db = yield* Db;
     const ai = yield* WorkersAi;
+    const userChannels = yield* UserChannels;
 
     return {
       extractForMessage: (messageId: string) =>
@@ -105,6 +107,29 @@ export const ExtractionServiceLive = Layer.effect(
               .set({ extractedCode: code, extractionStatus: "done" })
               .where(eq(schema.emailMessage.id, messageId)),
           );
+
+          const acct = yield* query(() =>
+            db.query.emailAccount.findFirst({
+              where: eq(schema.emailAccount.id, message.emailAccountId),
+              columns: { userId: true },
+            }),
+          );
+          const userId = acct?.userId;
+          if (userId) {
+            yield* Effect.tryPromise({
+              try: () =>
+                userChannels.get(userChannels.idFromName(userId)).pushCode({
+                  accountId: message.emailAccountId,
+                  messageId,
+                  code,
+                }),
+              catch: (cause) => cause,
+            }).pipe(
+              Effect.catchAll((cause) =>
+                Effect.logError(`pushCode failed for ${messageId}: ${cause}`),
+              ),
+            );
+          }
         }),
     };
   }),
