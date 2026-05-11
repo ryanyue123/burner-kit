@@ -5,8 +5,8 @@ import type * as schema from "../db/schema";
 
 export class Db extends Context.Tag("Db")<Db, DrizzleD1Database<typeof schema>>() {}
 
-export const query = <A>(execute: () => Promise<A>) =>
-  Effect.tryPromise({
-    try: execute,
-    catch: (cause) => new DatabaseError({ message: String(cause) }),
-  });
+export const query = <A>(execute: () => Promise<A>, label = "db query") =>
+  Effect.tryPromise(execute).pipe(
+    Effect.tapErrorCause((cause) => Effect.logError(`${label} failed`, cause)),
+    Effect.mapError((err) => new DatabaseError({ message: `${label} failed: ${err}` })),
+  );

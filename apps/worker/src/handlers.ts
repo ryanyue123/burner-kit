@@ -4,10 +4,10 @@ import { BurnerKitApi } from "./api";
 import { CurrentUser } from "./middleware";
 import { EmailAccountService } from "./services/email-account";
 import { EmailMessageService } from "./services/email-message";
-import { Db } from "./services/db";
+import { Db, query } from "./services/db";
 import { and, desc, eq, gt, isNull, isNotNull, or } from "drizzle-orm";
 import * as schema from "./db/schema";
-import { DatabaseError, EmailMessageNotFoundError } from "./errors";
+import { EmailMessageNotFoundError } from "./errors";
 
 // ── Mappers ───────────────────────────────────────────────────
 
@@ -114,8 +114,8 @@ export const CodesHandlersLive = HttpApiBuilder.group(BurnerKitApi, "codes", (ha
       const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
       const now = new Date();
 
-      const rows = yield* Effect.tryPromise({
-        try: () =>
+      const rows = yield* query(
+        () =>
           db
             .select({
               code: schema.emailMessage.extractedCode,
@@ -138,8 +138,8 @@ export const CodesHandlersLive = HttpApiBuilder.group(BurnerKitApi, "codes", (ha
             )
             .orderBy(desc(schema.emailMessage.receivedAt))
             .limit(1),
-        catch: (cause) => new DatabaseError({ message: `codes/latest query failed: ${cause}` }),
-      });
+        "codes/latest query",
+      );
 
       const row = rows[0];
       if (!row || row.code === null) {
