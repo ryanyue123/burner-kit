@@ -1,4 +1,5 @@
 import { attachIcons, observeNewInputs } from "./content/icon";
+import { attachOtpIcons, observeNewOtpInputs } from "./content/otp-icon";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -6,5 +7,7 @@ export default defineContentScript({
   main() {
     attachIcons();
     observeNewInputs();
+    attachOtpIcons();
+    observeNewOtpInputs();
   },
 });

@@ -15,3 +15,20 @@ port = 8787
 [vars]
 BETTER_AUTH_URL = "http://localhost:8787"
 EXTENSION_ORIGIN = "chrome-extension://gjkdmhmhmoahlkpcmkedpdjpahjkciip"
+
+[ai]
+binding = "AI"
+
+[[queues.producers]]
+queue = "otp-extraction"
+binding = "OTP_EXTRACTION_QUEUE"
+
+[[queues.consumers]]
+queue = "otp-extraction"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+dead_letter_queue = "otp-extraction-dlq"
+
+[triggers]
+crons = ["*/1 * * * *"]

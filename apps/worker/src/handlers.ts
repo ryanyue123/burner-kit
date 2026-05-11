@@ -4,7 +4,10 @@ import { BurnerKitApi } from "./api";
 import { CurrentUser } from "./middleware";
 import { EmailAccountService } from "./services/email-account";
 import { EmailMessageService } from "./services/email-message";
-import type * as schema from "./db/schema";
+import { Db } from "./services/db";
+import { and, desc, eq, gt, isNull, isNotNull, or } from "drizzle-orm";
+import * as schema from "./db/schema";
+import { EmailMessageNotFoundError } from "./errors";
 
 // ── Mappers ───────────────────────────────────────────────────
 
@@ -30,6 +33,8 @@ const toMessageResponse = (row: typeof schema.emailMessage.$inferSelect) => ({
   htmlContent: row.htmlContent,
   receivedAt: row.receivedAt.getTime(),
   isRead: row.isRead,
+  extractedCode: row.extractedCode,
+  extractionStatus: row.extractionStatus,
 });
 
 // ── Email accounts handlers ───────────────────────────────────
@@ -99,6 +104,57 @@ export const EmailAccountsHandlersLive = HttpApiBuilder.group(
       ),
 );
 
+// ── Codes handlers ─────────────────────────────────────────────
+
+export const CodesHandlersLive = HttpApiBuilder.group(BurnerKitApi, "codes", (handlers) =>
+  handlers.handle("latest", () =>
+    Effect.gen(function* () {
+      const user = yield* CurrentUser;
+      const db = yield* Db;
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+      const now = new Date();
+
+      const rows = yield* Effect.tryPromise({
+        try: () =>
+          db
+            .select({
+              code: schema.emailMessage.extractedCode,
+              fromAddress: schema.emailMessage.fromAddress,
+              receivedAt: schema.emailMessage.receivedAt,
+            })
+            .from(schema.emailMessage)
+            .innerJoin(
+              schema.emailAccount,
+              eq(schema.emailMessage.emailAccountId, schema.emailAccount.id),
+            )
+            .where(
+              and(
+                eq(schema.emailAccount.userId, user.id),
+                or(isNull(schema.emailAccount.expiresAt), gt(schema.emailAccount.expiresAt, now)),
+                isNotNull(schema.emailMessage.extractedCode),
+                eq(schema.emailMessage.isRead, false),
+                gt(schema.emailMessage.receivedAt, tenMinAgo),
+              ),
+            )
+            .orderBy(desc(schema.emailMessage.receivedAt))
+            .limit(1),
+        catch: () => new EmailMessageNotFoundError({ messageId: "no-fresh-code" }),
+      });
+
+      const row = rows[0];
+      if (!row || row.code === null) {
+        return yield* Effect.fail(new EmailMessageNotFoundError({ messageId: "no-fresh-code" }));
+      }
+
+      return {
+        code: row.code,
+        fromAddress: row.fromAddress,
+        receivedAt: row.receivedAt.getTime(),
+      };
+    }),
+  ),
+);
+
 // ── Misc handlers (health + me) ──────────────────────────────
 
 export const MiscHandlersLive = HttpApiBuilder.group(BurnerKitApi, "misc", (handlers) =>
@@ -118,4 +174,8 @@ export const MiscHandlersLive = HttpApiBuilder.group(BurnerKitApi, "misc", (hand
 
 // ── Combined layer ────────────────────────────────────────────
 
-export const HandlersLive = Layer.mergeAll(EmailAccountsHandlersLive, MiscHandlersLive);
+export const HandlersLive = Layer.mergeAll(
+  EmailAccountsHandlersLive,
+  CodesHandlersLive,
+  MiscHandlersLive,
+);

@@ -84,10 +84,32 @@ export function MessagesRoute() {
               onClick={() => handleSelectMessage(msg.id, msg.isRead)}
               className="w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors"
             >
-              <div
-                className={`text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-semibold"}`}
-              >
-                {msg.subject ?? "(no subject)"}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`flex-1 text-xs truncate ${msg.isRead ? "text-muted-foreground" : "text-foreground font-semibold"}`}
+                >
+                  {msg.subject ?? "(no subject)"}
+                </div>
+                {msg.extractedCode && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(msg.extractedCode!);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(msg.extractedCode!);
+                      }
+                    }}
+                    className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-secondary text-foreground hover:bg-secondary/70 cursor-pointer shrink-0"
+                    title="Copy code"
+                  >
+                    {msg.extractedCode}
+                  </span>
+                )}
               </div>
               <div className="text-[10px] text-muted-foreground mt-1">
                 {msg.fromAddress} ·{" "}

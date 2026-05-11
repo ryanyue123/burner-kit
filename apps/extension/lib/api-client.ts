@@ -55,4 +55,6 @@ export type EmailMessage = {
   htmlContent: string | null;
   receivedAt: number;
   isRead: boolean;
+  extractedCode: string | null;
+  extractionStatus: "pending" | "done" | "failed";
 };

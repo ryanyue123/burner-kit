@@ -15,6 +15,20 @@
       "when": 1775462679259,
       "tag": "0001_acoustic_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778455666945,
+      "tag": "0002_absurd_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778461789987,
+      "tag": "0003_robust_gamora",
+      "breakpoints": true
     }
   ]
 }

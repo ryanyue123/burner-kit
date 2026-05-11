@@ -54,3 +54,13 @@ export function useMarkRead() {
     },
   });
 }
+
+type LatestCode = { code: string; fromAddress: string; receivedAt: number };
+
+export function useLatestCode() {
+  return useQuery({
+    queryKey: ["latest-code"],
+    queryFn: () => sendMessage<LatestCode>({ type: "GET_LATEST_CODE" }),
+    staleTime: 0, // always refetch on popup open
+  });
+}

@@ -119,8 +119,17 @@ export const emailMessage = sqliteTable(
     htmlContent: text("html_content"),
     receivedAt: integer("received_at", { mode: "timestamp_ms" }).notNull(),
     isRead: integer("is_read", { mode: "boolean" }).default(false).notNull(),
+    extractedCode: text("extracted_code"),
+    extractionStatus: text("extraction_status", {
+      enum: ["pending", "done", "failed"],
+    })
+      .default("pending")
+      .notNull(),
   },
-  (table) => [index("email_message_accountId_idx").on(table.emailAccountId)],
+  (table) => [
+    index("email_message_accountId_idx").on(table.emailAccountId),
+    index("email_message_account_received_idx").on(table.emailAccountId, table.receivedAt),
+  ],
 );
 
 export const userRelations = relations(user, ({ many }) => ({

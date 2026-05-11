@@ -30,3 +30,9 @@ export class EmailMessageNotFoundError extends Schema.TaggedError<EmailMessageNo
   { messageId: Schema.String },
   HttpApiSchema.annotations({ status: 404 }),
 ) {}
+
+export class ExtractionError extends Schema.TaggedError<ExtractionError>()(
+  "ExtractionError",
+  { reason: Schema.String },
+  HttpApiSchema.annotations({ status: 502 }),
+) {}
