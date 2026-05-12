@@ -1,9 +1,18 @@
-import { Context, Effect, Layer, Schema, pipe } from "effect";
+import { Context, Effect, Layer, Schedule, Schema, pipe } from "effect";
 import { HttpClient, HttpClientRequest } from "@effect/platform";
 import { MailTmError } from "../errors";
 import { MailTmAccount, MailTmDomain, MailTmMessage, MailTmMessageList } from "../schemas";
 
 const MAIL_TM_API = "https://api.mail.tm";
+
+/** Retry transient mail.tm/network failures: 500ms → 1s → 2s → fail.
+ *  Worst-case added latency on permanent failure: ~3.5s.
+ *  Caveat: POSTs that succeed upstream but lose the response will be
+ *  retried, which can create a duplicate mail.tm account. For our use
+ *  case the cost of a duplicate is a wasted random address — acceptable. */
+const HTTP_RETRY = Schedule.exponential("500 millis", 2).pipe(
+  Schedule.intersect(Schedule.recurs(3)),
+);
 
 const MailTmDomainResponse = Schema.Struct({
   "hydra:member": Schema.Array(MailTmDomain),
@@ -40,6 +49,7 @@ export const MailTmLive = Layer.effect(
         (req) =>
           client.execute(req).pipe(
             Effect.flatMap((res) => res.json),
+            Effect.retry(HTTP_RETRY),
             Effect.catchAll((e) =>
               Effect.fail(
                 new MailTmError({
@@ -55,6 +65,7 @@ export const MailTmLive = Layer.effect(
         HttpClientRequest.post(`${MAIL_TM_API}${path}`),
         HttpClientRequest.bodyJson(body),
         Effect.flatMap((req) => client.execute(req).pipe(Effect.flatMap((res) => res.json))),
+        Effect.retry(HTTP_RETRY),
         Effect.catchAll((e) =>
           Effect.fail(
             new MailTmError({
