@@ -173,6 +173,7 @@ export class UserChannel extends DurableObject<Env> {
     );
 
     let opened = 0;
+    let failed = 0;
     for (const account of accounts) {
       if (this.subscribers.has(account.id)) continue;
       const sub = new MercureSubscriber({
@@ -183,12 +184,22 @@ export class UserChannel extends DurableObject<Env> {
           console.error(`[user-channel] mercure error for ${account.email}:`, err);
         },
       });
-      sub.open();
-      this.subscribers.set(account.id, sub);
-      opened++;
+      try {
+        sub.open();
+        // Only register after open() succeeds so a failed account can be
+        // retried by the next reconcile pass (dedup wouldn't skip it).
+        this.subscribers.set(account.id, sub);
+        opened++;
+      } catch (err) {
+        failed++;
+        console.error(
+          `[user-channel] failed to open mercure subscriber for ${account.email}:`,
+          err,
+        );
+      }
     }
     console.log(
-      `[latency] subscribed userId=${userId} accountCount=${accounts.length} opened=${opened} ts=${Date.now()}`,
+      `[latency] subscribed userId=${userId} accountCount=${accounts.length} opened=${opened} failed=${failed} ts=${Date.now()}`,
     );
   }
 
