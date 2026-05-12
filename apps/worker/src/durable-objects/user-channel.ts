@@ -126,6 +126,9 @@ export class UserChannel extends DurableObject<Env> {
     messageId: string;
     code: string | null;
   }): Promise<void> {
+    console.log(
+      `[latency] pushed messageId=${payload.messageId} code=${payload.code ?? "null"} ts=${Date.now()}`,
+    );
     this.broadcast({
       type: "ready",
       accountId: payload.accountId,
@@ -192,6 +195,9 @@ export class UserChannel extends DurableObject<Env> {
     event: import("../services/mail-tm-mercure").MercureEvent,
   ): Promise<void> {
     if (event.kind !== "arrive") return;
+    console.log(
+      `[latency] mercure_arrive messageId=${event.messageId} accountId=${account.id} ts=${Date.now()}`,
+    );
     this.broadcast({
       type: "message",
       accountId: account.id,
@@ -209,6 +215,7 @@ export class UserChannel extends DurableObject<Env> {
         ),
       ),
     );
+    console.log(`[latency] synced messageId=${event.messageId} ts=${Date.now()}`);
   }
 
   // ------------------------------------------------------------------

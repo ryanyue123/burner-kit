@@ -70,6 +70,8 @@ export const ExtractionServiceLive = Layer.effect(
             return;
           }
 
+          yield* Effect.log(`[latency] extract_start messageId=${messageId} ts=${Date.now()}`);
+
           const body = message.textContent ?? message.htmlContent ?? "";
           const userContent = `Subject: ${message.subject ?? ""}\nFrom: ${message.fromAddress}\n\n${body}`;
 
@@ -106,6 +108,10 @@ export const ExtractionServiceLive = Layer.effect(
               .update(schema.emailMessage)
               .set({ extractedCode: code, extractionStatus: "done" })
               .where(eq(schema.emailMessage.id, messageId)),
+          );
+
+          yield* Effect.log(
+            `[latency] extract_done messageId=${messageId} code=${code ?? "null"} ts=${Date.now()}`,
           );
 
           const acct = yield* query(() =>
