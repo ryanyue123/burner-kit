@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Context, Effect, Layer, Schedule, Schema } from "effect";
 import { eq } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
@@ -14,6 +14,9 @@ const AiCodeResponse = Schema.Struct({
 
 const MARKDOWN_FENCE_HEAD = /^\s*```(?:json)?\s*/;
 const MARKDOWN_FENCE_TAIL = /\s*```\s*$/;
+
+/** Retry Workers AI on transient failures: 500ms → 1s → 2s → fail. */
+const AI_RETRY = Schedule.exponential("500 millis", 2).pipe(Schedule.intersect(Schedule.recurs(3)));
 
 function parseAiCode(raw: string) {
   return Effect.gen(function* () {
@@ -107,7 +110,7 @@ export const ExtractionServiceLive = Layer.effect(
                 response_format: RESPONSE_SCHEMA,
               }),
             catch: (cause) => new ExtractionError({ reason: `ai.run failed: ${cause}` }),
-          });
+          }).pipe(Effect.retry(AI_RETRY));
 
           const code = yield* parseAiCode(aiResponse.choices[0]?.message?.content ?? "").pipe(
             Effect.catchAll((cause) =>
