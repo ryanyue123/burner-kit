@@ -4,6 +4,7 @@ import { logPageInputs, observePageInputChanges } from "./content/input-debug";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
+  allFrames: true,
   runAt: "document_idle",
   main() {
     attachIcons();
