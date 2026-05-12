@@ -224,7 +224,7 @@ export class UserChannel extends DurableObject<Env> {
     await runtime.runPromise(
       Effect.gen(function* () {
         const svc = yield* EmailMessageService;
-        yield* svc.syncAccountInternal(account);
+        yield* svc.syncMessageById(account, event.messageId);
       }).pipe(
         Effect.catchAll((cause) =>
           Effect.logError(`[user-channel] sync failed for ${account.email}: ${cause}`),
