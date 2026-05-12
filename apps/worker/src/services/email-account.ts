@@ -96,6 +96,10 @@ export const EmailAccountServiceLive = Layer.effect(
 
           yield* query(() => db.insert(schema.emailAccount).values(row));
 
+          yield* Effect.log(
+            `[latency] account_created userId=${userId} accountId=${id} email=${account.address} ts=${Date.now()}`,
+          );
+
           yield* Effect.tryPromise({
             try: () => userChannels.get(userChannels.idFromName(userId)).ensureSubscribed(),
             catch: (cause) => cause,

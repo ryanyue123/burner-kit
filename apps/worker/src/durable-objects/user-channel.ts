@@ -176,6 +176,9 @@ export class UserChannel extends DurableObject<Env> {
       sub.open();
       this.subscribers.set(account.id, sub);
     }
+    console.log(
+      `[latency] subscribed userId=${userId} accountCount=${accounts.length} ts=${Date.now()}`,
+    );
   }
 
   private async deactivate(): Promise<void> {
