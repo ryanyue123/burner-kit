@@ -37,6 +37,10 @@ export class EmailMessageService extends Context.Tag("EmailMessageService")<
     readonly syncAccountInternal: (
       account: typeof schema.emailAccount.$inferSelect,
     ) => Effect.Effect<void, DatabaseError>;
+    readonly syncMessageById: (
+      account: typeof schema.emailAccount.$inferSelect,
+      messageId: string,
+    ) => Effect.Effect<void, DatabaseError>;
   }
 >() {}
 
@@ -260,6 +264,60 @@ export const EmailMessageServiceLive = Layer.effect(
               yield* enqueueExtraction(msg.id);
             }
           }
+        }),
+
+      syncMessageById: (account: typeof schema.emailAccount.$inferSelect, messageId: string) =>
+        Effect.gen(function* () {
+          const existing = yield* query(() =>
+            db.query.emailMessage.findFirst({
+              where: eq(schema.emailMessage.id, messageId),
+            }),
+          );
+
+          if (existing && (existing.textContent !== null || existing.htmlContent !== null)) {
+            yield* Effect.log(`[mercure] skip — already cached ${messageId}`);
+            return;
+          }
+
+          const fullMsg = yield* mailTm
+            .getMessage(account.providerToken, messageId)
+            .pipe(
+              Effect.catchAll((e) =>
+                Effect.logError(`[mercure] failed to fetch ${messageId}: ${e}`).pipe(
+                  Effect.as(null),
+                ),
+              ),
+            );
+
+          if (!fullMsg) return;
+
+          if (!existing) {
+            yield* query(() =>
+              db.insert(schema.emailMessage).values({
+                id: messageId,
+                emailAccountId: account.id,
+                fromAddress: fullMsg.from.address,
+                subject: fullMsg.subject ?? null,
+                textContent: fullMsg.text ?? null,
+                htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                receivedAt: new Date(fullMsg.createdAt),
+                isRead: fullMsg.seen,
+              }),
+            );
+          } else {
+            yield* query(() =>
+              db
+                .update(schema.emailMessage)
+                .set({
+                  subject: fullMsg.subject ?? null,
+                  textContent: fullMsg.text ?? null,
+                  htmlContent: fullMsg.html ? fullMsg.html.join("") : null,
+                  extractionStatus: "pending",
+                })
+                .where(eq(schema.emailMessage.id, messageId)),
+            );
+          }
+          yield* enqueueExtraction(messageId);
         }),
     };
   }),

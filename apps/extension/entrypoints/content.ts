@@ -1,15 +1,16 @@
 import { attachIcons, observeNewInputs } from "./content/icon";
-import { attachOtpIcons, observeNewOtpInputs } from "./content/otp-icon";
+import { attachCodeIcons, observeNewCodeInputs } from "./content/code-icon";
 import { logPageInputs, observePageInputChanges } from "./content/input-debug";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
+  allFrames: true,
   runAt: "document_idle",
   main() {
     attachIcons();
     observeNewInputs();
-    attachOtpIcons();
-    observeNewOtpInputs();
+    attachCodeIcons();
+    observeNewCodeInputs();
     logPageInputs();
     observePageInputChanges();
   },

@@ -1,9 +1,10 @@
 import { Context, Effect, Layer } from "effect";
 import { createId } from "@paralleldrive/cuid2";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull, gt } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { MailTm } from "./mail-tm";
+import { UserChannels } from "./user-channel";
 import { EmailAccountNotFoundError, MailTmError, DatabaseError } from "../errors";
 
 export class EmailAccountService extends Context.Tag("EmailAccountService")<
@@ -39,6 +40,9 @@ export class EmailAccountService extends Context.Tag("EmailAccountService")<
       typeof schema.emailAccount.$inferSelect,
       EmailAccountNotFoundError | DatabaseError
     >;
+    readonly listActiveByUserId: (
+      userId: string,
+    ) => Effect.Effect<ReadonlyArray<typeof schema.emailAccount.$inferSelect>, DatabaseError>;
   }
 >() {}
 
@@ -47,6 +51,7 @@ export const EmailAccountServiceLive = Layer.effect(
   Effect.gen(function* () {
     const db = yield* Db;
     const mailTm = yield* MailTm;
+    const userChannels = yield* UserChannels;
 
     const getAccount = (userId: string, accountId: string) =>
       query(() =>
@@ -90,6 +95,19 @@ export const EmailAccountServiceLive = Layer.effect(
           };
 
           yield* query(() => db.insert(schema.emailAccount).values(row));
+
+          yield* Effect.log(
+            `[latency] account_created userId=${userId} accountId=${id} email=${account.address} ts=${Date.now()}`,
+          );
+
+          yield* Effect.tryPromise({
+            try: () => userChannels.get(userChannels.idFromName(userId)).ensureSubscribed(),
+            catch: (cause) => cause,
+          }).pipe(
+            Effect.catchAll((cause) =>
+              Effect.logError(`ensureSubscribed failed for ${userId}: ${cause}`),
+            ),
+          );
 
           return row;
         }),
@@ -153,6 +171,19 @@ export const EmailAccountServiceLive = Layer.effect(
           );
           return yield* getAccount(userId, accountId);
         }),
+
+      listActiveByUserId: (userId: string) =>
+        query(() =>
+          db.query.emailAccount.findMany({
+            where: and(
+              eq(schema.emailAccount.userId, userId),
+              or(
+                isNull(schema.emailAccount.expiresAt),
+                gt(schema.emailAccount.expiresAt, new Date()),
+              ),
+            ),
+          }),
+        ),
     };
   }),
 );

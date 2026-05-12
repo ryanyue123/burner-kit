@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { anonymous } from "better-auth/plugins";
+import { anonymous, bearer } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./db/schema";
 
@@ -22,7 +22,7 @@ export function createAuth(env: AuthEnv) {
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
     trustedOrigins: env.EXTENSION_ORIGIN ? [env.EXTENSION_ORIGIN] : ["chrome-extension://*"], // dev fallback; tightened in Task 10
-    plugins: [anonymous()],
+    plugins: [anonymous(), bearer()],
   });
 }
 

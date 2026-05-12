@@ -11,6 +11,7 @@ import { EmailAccountServiceLive } from "./services/email-account";
 import { EmailMessageServiceLive } from "./services/email-message";
 import { ExtractionServiceLive, CodeQueue, WorkersAi } from "./services/extraction";
 import { MailTmLive } from "./services/mail-tm";
+import { UserChannels } from "./services/user-channel";
 
 export function makeServicesLayer(env: Env) {
   const db = drizzle(env.DB, { schema });
@@ -19,11 +20,13 @@ export function makeServicesLayer(env: Env) {
   const dbLayer = Layer.succeed(Db, db);
   const codeQueueLayer = Layer.succeed(CodeQueue, env.CODE_EXTRACTION_QUEUE);
   const aiLayer = Layer.succeed(WorkersAi, env.AI);
+  const userChannelLayer = Layer.succeed(UserChannels, env.USER_CHANNEL);
   const mailTmLayer = MailTmLive.pipe(Layer.provide(FetchHttpClient.layer));
 
   const emailAccountLayer = EmailAccountServiceLive.pipe(
     Layer.provide(dbLayer),
     Layer.provide(mailTmLayer),
+    Layer.provide(userChannelLayer),
   );
 
   const emailMessageLayer = EmailMessageServiceLive.pipe(
@@ -36,6 +39,7 @@ export function makeServicesLayer(env: Env) {
   const extractionLayer = ExtractionServiceLive.pipe(
     Layer.provide(dbLayer),
     Layer.provide(aiLayer),
+    Layer.provide(userChannelLayer),
   );
 
   const authLayer = makeAuthMiddlewareLive(auth);
