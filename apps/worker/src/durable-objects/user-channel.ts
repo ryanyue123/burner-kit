@@ -118,7 +118,9 @@ export class UserChannel extends DurableObject<Env> {
       return;
     }
     await this.extendAlarm();
-    await this.activate(userId);
+    // Always reconcile — a new burner may have been created while we were
+    // already active, in which case `activate`'s early-return would skip it.
+    await this.reconcileSubscriptions(userId);
   }
 
   async pushCode(payload: {
@@ -148,6 +150,15 @@ export class UserChannel extends DurableObject<Env> {
   private async activate(userId: string): Promise<void> {
     if (this.active) return;
     this.active = true;
+    await this.reconcileSubscriptions(userId);
+  }
+
+  /**
+   * Enumerate the user's active burners and open a `MercureSubscriber` for
+   * any that aren't already tracked. Safe to call repeatedly — the Map
+   * dedups by accountId, and existing subscribers are left alone.
+   */
+  private async reconcileSubscriptions(userId: string): Promise<void> {
     this.runtime ??= ManagedRuntime.make(makeServicesLayer(this.env));
 
     const accounts = await this.runtime.runPromise(
@@ -163,6 +174,7 @@ export class UserChannel extends DurableObject<Env> {
       ),
     );
 
+    let opened = 0;
     for (const account of accounts) {
       if (this.subscribers.has(account.id)) continue;
       const sub = new MercureSubscriber({
@@ -175,9 +187,10 @@ export class UserChannel extends DurableObject<Env> {
       });
       sub.open();
       this.subscribers.set(account.id, sub);
+      opened++;
     }
     console.log(
-      `[latency] subscribed userId=${userId} accountCount=${accounts.length} ts=${Date.now()}`,
+      `[latency] subscribed userId=${userId} accountCount=${accounts.length} opened=${opened} ts=${Date.now()}`,
     );
   }
 
