@@ -1,9 +1,31 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Schema } from "effect";
 import { eq } from "drizzle-orm";
 import * as schema from "../db/schema";
 import { Db, query } from "./db";
 import { UserChannels } from "./user-channel";
 import { DatabaseError, EmailMessageNotFoundError, ExtractionError } from "../errors";
+
+/** Expected AI response shape. The model is asked for `{ code: string | null }`
+ *  via `response_format`, but sometimes wraps it in a ```json …``` markdown
+ *  fence — strip those before JSON.parse, then validate via Schema. */
+const AiCodeResponse = Schema.Struct({
+  code: Schema.NullOr(Schema.String),
+});
+
+const MARKDOWN_FENCE_HEAD = /^\s*```(?:json)?\s*/;
+const MARKDOWN_FENCE_TAIL = /\s*```\s*$/;
+
+function parseAiCode(raw: string) {
+  return Effect.gen(function* () {
+    const stripped = raw.replace(MARKDOWN_FENCE_HEAD, "").replace(MARKDOWN_FENCE_TAIL, "").trim();
+    const json = yield* Effect.try({
+      try: () => JSON.parse(stripped) as unknown,
+      catch: (cause) => new Error(`JSON.parse failed: ${cause} (input: ${stripped.slice(0, 80)})`),
+    });
+    const decoded = yield* Schema.decodeUnknown(AiCodeResponse)(json);
+    return decoded.code;
+  });
+}
 
 export class CodeQueue extends Context.Tag("CodeQueue")<
   CodeQueue,
@@ -87,14 +109,7 @@ export const ExtractionServiceLive = Layer.effect(
             catch: (cause) => new ExtractionError({ reason: `ai.run failed: ${cause}` }),
           });
 
-          const code = yield* Effect.try({
-            try: () => {
-              const raw = aiResponse.choices[0]?.message?.content ?? "";
-              const parsed = JSON.parse(raw) as { code: string | null };
-              return typeof parsed.code === "string" || parsed.code === null ? parsed.code : null;
-            },
-            catch: (cause) => cause,
-          }).pipe(
+          const code = yield* parseAiCode(aiResponse.choices[0]?.message?.content ?? "").pipe(
             Effect.catchAll((cause) =>
               Effect.logError(`failed to parse AI response for ${messageId}: ${cause}`).pipe(
                 Effect.as<string | null>(null),
