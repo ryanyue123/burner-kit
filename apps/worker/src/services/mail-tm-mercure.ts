@@ -1,4 +1,4 @@
-import { Effect, Schedule, Fiber } from "effect";
+import { Effect, Schedule, Fiber, Schema } from "effect";
 import { EventSourceParserStream } from "eventsource-parser/stream";
 
 const HUB = "https://mercure.mail.tm/.well-known/mercure";
@@ -17,18 +17,28 @@ export interface MercureSubscriberOptions {
   onError: (err: unknown) => void;
 }
 
+// Shape of a Message-resource payload pushed via Mercure. mail.tm also emits
+// an "Account" event for usage updates — we filter those out by `@type`.
+const MercureMessage = Schema.Struct({
+  id: Schema.String,
+  isDeleted: Schema.optional(Schema.Boolean),
+  seen: Schema.optional(Schema.Boolean),
+  "@type": Schema.optional(Schema.String),
+});
+const decodeMercureMessage = Schema.decodeUnknownEither(MercureMessage);
+
 async function dispatch(opts: MercureSubscriberOptions, raw: string): Promise<void> {
-  let data: any;
+  let json: unknown;
   try {
-    data = JSON.parse(raw);
+    json = JSON.parse(raw);
   } catch (err) {
     opts.onError(err);
     return;
   }
-  // mail.tm emits an "Account" type event with account-level usage updates —
-  // we only care about Message events (which carry an id and seen/isDeleted).
-  if (data?.["@type"] === "Account") return;
-  if (typeof data?.id !== "string") return;
+  const result = decodeMercureMessage(json);
+  if (result._tag === "Left") return; // not a message we recognise — drop silently
+  const data = result.right;
+  if (data["@type"] === "Account") return;
   const kind: MercureEvent["kind"] = data.isDeleted ? "delete" : data.seen ? "seen" : "arrive";
   await opts.onEvent({ kind, messageId: data.id });
 }
