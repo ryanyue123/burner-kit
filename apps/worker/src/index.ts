@@ -40,7 +40,11 @@ export default {
     }
 
     if (url.pathname === "/api/channel/connect") {
-      if (request.headers.get("Upgrade") !== "websocket") {
+      // Per RFC 6455 §4.2.1, the Upgrade header comparison must be
+      // case-insensitive. Spec-compliant clients can send "websocket",
+      // "WebSocket", or "WEBSOCKET".
+      const upgrade = request.headers.get("Upgrade")?.trim().toLowerCase();
+      if (upgrade !== "websocket") {
         return new Response("expected websocket", { status: 426, headers: cors });
       }
 

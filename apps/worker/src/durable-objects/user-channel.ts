@@ -49,7 +49,9 @@ export class UserChannel extends DurableObject<Env> {
   > | null = null;
 
   async fetch(request: Request): Promise<Response> {
-    if (request.headers.get("Upgrade") !== "websocket") {
+    // RFC 6455 §4.2.1 — Upgrade comparison is case-insensitive.
+    const upgrade = request.headers.get("Upgrade")?.trim().toLowerCase();
+    if (upgrade !== "websocket") {
       return new Response("expected websocket", { status: 426 });
     }
     const userId = request.headers.get("X-User-Id");
