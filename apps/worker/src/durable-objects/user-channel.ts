@@ -97,16 +97,14 @@ export class UserChannel extends DurableObject<Env> {
     }
   }
 
-  async webSocketClose(ws: WebSocket): Promise<void> {
-    try {
-      ws.close();
-    } catch {
-      // already closed
-    }
+  async webSocketClose(_ws: WebSocket): Promise<void> {
+    // Runtime has already closed the socket by the time this fires.
+    // No state cleanup needed — attachments are GC'd with the socket and
+    // alarm-driven deactivate handles the Mercure subscribers.
   }
 
   async webSocketError(_ws: WebSocket, _err: unknown): Promise<void> {
-    // socket will close
+    // socket will close; nothing to do
   }
 
   async ensureSubscribed(): Promise<void> {

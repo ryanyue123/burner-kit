@@ -65,7 +65,7 @@ export default defineBackground(() => {
       console.error("[user-channel] no session token — cannot connect");
       return;
     }
-    const wsUrl = API_URL.replace(/^http/, "ws") + "/api/channel/connect";
+    const wsUrl = API_URL.replace(/\/$/, "").replace(/^http/, "ws") + "/api/channel/connect";
     channel = new UserChannelClient({
       url: wsUrl,
       token,
