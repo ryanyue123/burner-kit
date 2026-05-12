@@ -274,7 +274,7 @@ export const EmailMessageServiceLive = Layer.effect(
             }),
           );
 
-          if (existing && existing.textContent !== null) {
+          if (existing && (existing.textContent !== null || existing.htmlContent !== null)) {
             yield* Effect.log(`[mercure] skip — already cached ${messageId}`);
             return;
           }
