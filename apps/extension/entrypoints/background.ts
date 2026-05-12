@@ -52,38 +52,75 @@ export default defineBackground(() => {
   console.log("burner-kit background started");
 
   let channel: UserChannelClient | null = null;
+  let bootstrapInFlight: Promise<UserChannelClient | null> | null = null;
+  let bootstrapAttempts = 0;
+  const BOOTSTRAP_MAX_ATTEMPTS = 6;
+  const BOOTSTRAP_MAX_DELAY_MS = 30_000;
 
-  async function startChannel(): Promise<void> {
-    if (channel) return;
-    // Cross-origin WS upgrades from a service worker don't get the Better
-    // Auth session cookie, so we authenticate via WS subprotocol bearer.
-    // For MVP we capture whatever token exists at startup; partysocket will
-    // reconnect with the same token. Token rotation is out of scope.
-    const session = await authClient.getSession();
-    const token = session.data?.session?.token;
-    if (!token) {
-      console.error("[user-channel] no session token — cannot connect");
-      return;
-    }
-    const wsUrl = API_URL.replace(/\/$/, "").replace(/^http/, "ws") + "/api/channel/connect";
-    channel = new UserChannelClient({
-      url: wsUrl,
-      token,
-      onMessage: (msg: ChannelOutbound) => {
-        // Broadcast every push to popup + content scripts. Receivers filter
-        // by `type` themselves.
-        chrome.runtime.sendMessage({ type: "CHANNEL_PUSH", payload: msg }).catch(() => {
-          // No receiver listening — that's fine.
+  /** Attempt to start the channel once. Returns the live client or null on
+   *  failure (no session yet, network blip, …). De-duplicates concurrent
+   *  callers via `bootstrapInFlight`. */
+  function ensureChannel(): Promise<UserChannelClient | null> {
+    if (channel) return Promise.resolve(channel);
+    if (bootstrapInFlight) return bootstrapInFlight;
+
+    bootstrapInFlight = (async () => {
+      try {
+        await ensureAnonymousSession();
+        // Cross-origin WS upgrades from a service worker don't get the
+        // Better Auth session cookie, so we authenticate via WS subprotocol
+        // bearer. Token is captured here; partysocket will reuse it for
+        // reconnects. Token rotation is out of scope for MVP.
+        const session = await authClient.getSession();
+        const token = session.data?.session?.token;
+        if (!token) {
+          console.warn(`[user-channel] no session token yet (attempt ${bootstrapAttempts + 1})`);
+          return null;
+        }
+        const wsUrl = API_URL.replace(/\/$/, "").replace(/^http/, "ws") + "/api/channel/connect";
+        channel = new UserChannelClient({
+          url: wsUrl,
+          token,
+          onMessage: (msg: ChannelOutbound) => {
+            chrome.runtime.sendMessage({ type: "CHANNEL_PUSH", payload: msg }).catch(() => {
+              // No receiver listening — that's fine.
+            });
+          },
+          onStateChange: (state) => console.log(`[user-channel] ${state}`),
         });
-      },
-      onStateChange: (state) => console.log(`[user-channel] ${state}`),
-    });
-    channel.connect();
+        channel.connect();
+        bootstrapAttempts = 0;
+        return channel;
+      } catch (err) {
+        console.error("[user-channel] bootstrap failed:", err);
+        return null;
+      } finally {
+        bootstrapInFlight = null;
+      }
+    })();
+    return bootstrapInFlight;
   }
 
-  ensureAnonymousSession()
-    .then(() => startChannel())
-    .catch((err) => console.error(err));
+  /** Kick off bootstrap with exponential backoff on failure so a transient
+   *  startup race (no session yet, network slow) self-heals without
+   *  requiring user action. Caps at BOOTSTRAP_MAX_ATTEMPTS; after that,
+   *  on-demand `ensureChannel` calls from message handlers are the recovery
+   *  path. */
+  async function scheduleBootstrap(): Promise<void> {
+    const c = await ensureChannel();
+    if (c) return;
+    if (bootstrapAttempts >= BOOTSTRAP_MAX_ATTEMPTS) {
+      console.warn(
+        `[user-channel] giving up scheduled bootstrap after ${BOOTSTRAP_MAX_ATTEMPTS} attempts; will retry on next user action`,
+      );
+      return;
+    }
+    bootstrapAttempts++;
+    const delay = Math.min(1_000 * 2 ** bootstrapAttempts, BOOTSTRAP_MAX_DELAY_MS);
+    setTimeout(() => void scheduleBootstrap(), delay);
+  }
+
+  void scheduleBootstrap();
 
   chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) => {
     (async () => {
@@ -100,7 +137,7 @@ export default defineBackground(() => {
         case "GENERATE_EMAIL": {
           const res = await apiRequest<EmailAccount>("/api/email-accounts", { method: "POST" });
           sendResponse(res);
-          if (res.ok) channel?.subscribe();
+          if (res.ok) void ensureChannel().then((c) => c?.subscribe());
           break;
         }
         case "GET_EMAIL_ACCOUNTS": {
@@ -154,7 +191,7 @@ export default defineBackground(() => {
           break;
         }
         case "CODE_DETECTED": {
-          channel?.subscribe();
+          void ensureChannel().then((c) => c?.subscribe());
           sendResponse({ ok: true });
           break;
         }
