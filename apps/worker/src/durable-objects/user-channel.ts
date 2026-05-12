@@ -64,7 +64,19 @@ export class UserChannel extends DurableObject<Env> {
     this.send(server, { type: "hello", userId });
     await this.activate(userId);
 
-    return new Response(null, { status: 101, webSocket: client });
+    // Browsers require the server to echo back exactly one of the offered
+    // Sec-WebSocket-Protocol values for the upgrade to succeed. The parent
+    // Worker validated auth via the `bearer.<token>` subprotocol; here we
+    // echo back only `channel.v1` so the secret never appears in the
+    // response.
+    const offered = (request.headers.get("Sec-WebSocket-Protocol") ?? "")
+      .split(",")
+      .map((s) => s.trim());
+    const responseHeaders = new Headers();
+    if (offered.includes("channel.v1")) {
+      responseHeaders.set("Sec-WebSocket-Protocol", "channel.v1");
+    }
+    return new Response(null, { status: 101, webSocket: client, headers: responseHeaders });
   }
 
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {

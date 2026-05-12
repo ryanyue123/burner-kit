@@ -40,20 +40,48 @@ export default {
     }
 
     if (url.pathname === "/api/channel/connect") {
-      const auth = createAuth(env);
-      const session = await auth.api.getSession({ headers: request.headers });
-      if (!session?.user) {
-        return new Response("unauthorized", { status: 401, headers: cors });
-      }
       if (request.headers.get("Upgrade") !== "websocket") {
         return new Response("expected websocket", { status: 426, headers: cors });
       }
+
+      // Cookie auth fails for cross-origin WS upgrades from extension service
+      // workers (the browser refuses to send Better Auth's session cookie).
+      // Instead, the client offers two WS subprotocols:
+      //   ["channel.v1", "bearer.<sessionToken>"]
+      // We extract the bearer token here, validate it via Better Auth's
+      // bearer plugin (which converts the raw token into a signed session
+      // cookie internally), and let the DO echo back only "channel.v1" in
+      // the 101 response so the token never appears in the response.
+      const offered = (request.headers.get("Sec-WebSocket-Protocol") ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const bearerEntry = offered.find((p) => p.startsWith("bearer."));
+      if (!bearerEntry) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+      const token = bearerEntry.slice("bearer.".length);
+      if (!token) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+
+      const auth = createAuth(env);
+      const session = await auth.api.getSession({
+        headers: new Headers({ authorization: `Bearer ${token}` }),
+      });
+      if (!session?.user) {
+        return new Response("unauthorized", { status: 401, headers: cors });
+      }
+
       const id = env.USER_CHANNEL.idFromName(session.user.id);
       const stub = env.USER_CHANNEL.get(id);
       const forwarded = new Request(request, {
         headers: new Headers(request.headers),
       });
       forwarded.headers.set("X-User-Id", session.user.id);
+      // DO not modify the response from the DO — it sets the echo protocol
+      // header (Sec-WebSocket-Protocol: channel.v1) which the browser
+      // requires for the upgrade to succeed.
       return stub.fetch(forwarded);
     }
 

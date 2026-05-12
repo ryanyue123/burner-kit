@@ -13,6 +13,13 @@ export type ChannelInbound = { type: "heartbeat" } | { type: "subscribe" };
 export interface UserChannelClientOptions {
   /** ws:// or wss:// URL pointing at /api/channel/connect. */
   url: string;
+  /**
+   * Better Auth session token. Sent as a WS subprotocol entry
+   * (`bearer.<token>`) on the upgrade handshake. The browser refuses to
+   * forward the session cookie on cross-origin WS upgrades from a service
+   * worker, so we authenticate via subprotocol bearer instead.
+   */
+  token: string;
   onMessage: (msg: ChannelOutbound) => void;
   onStateChange?: (state: "connecting" | "open" | "closed") => void;
 }
@@ -29,15 +36,22 @@ export class UserChannelClient {
     if (this.ws) return;
     this.opts.onStateChange?.("connecting");
 
-    this.ws = new ReconnectingWebSocket(this.opts.url, [], {
-      maxRetries: Infinity,
-      minReconnectionDelay: 1_000,
-      maxReconnectionDelay: 30_000,
-      reconnectionDelayGrowFactor: 1.5,
-      // We use an application-level heartbeat (regular message, not a WS
-      // ping frame) so the DO actually wakes from hibernation. partysocket's
-      // built-in pingTimeout uses ping frames — wrong shape for our case.
-    });
+    // Two-subprotocol bearer auth: server validates the `bearer.<token>`
+    // entry, then echoes back only `channel.v1` in the 101 response. The
+    // token never appears in the response or URL.
+    this.ws = new ReconnectingWebSocket(
+      this.opts.url,
+      ["channel.v1", `bearer.${this.opts.token}`],
+      {
+        maxRetries: Infinity,
+        minReconnectionDelay: 1_000,
+        maxReconnectionDelay: 30_000,
+        reconnectionDelayGrowFactor: 1.5,
+        // We use an application-level heartbeat (regular message, not a WS
+        // ping frame) so the DO actually wakes from hibernation. partysocket's
+        // built-in pingTimeout uses ping frames — wrong shape for our case.
+      },
+    );
 
     this.ws.addEventListener("open", () => {
       this.opts.onStateChange?.("open");

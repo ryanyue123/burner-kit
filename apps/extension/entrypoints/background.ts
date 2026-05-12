@@ -53,11 +53,22 @@ export default defineBackground(() => {
 
   let channel: UserChannelClient | null = null;
 
-  function startChannel(): void {
+  async function startChannel(): Promise<void> {
     if (channel) return;
+    // Cross-origin WS upgrades from a service worker don't get the Better
+    // Auth session cookie, so we authenticate via WS subprotocol bearer.
+    // For MVP we capture whatever token exists at startup; partysocket will
+    // reconnect with the same token. Token rotation is out of scope.
+    const session = await authClient.getSession();
+    const token = session.data?.session?.token;
+    if (!token) {
+      console.error("[user-channel] no session token — cannot connect");
+      return;
+    }
     const wsUrl = API_URL.replace(/^http/, "ws") + "/api/channel/connect";
     channel = new UserChannelClient({
       url: wsUrl,
+      token,
       onMessage: (msg: ChannelOutbound) => {
         // Broadcast every push to popup + content scripts. Receivers filter
         // by `type` themselves.
